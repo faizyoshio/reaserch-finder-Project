@@ -198,8 +198,10 @@ export function SearchInput({
           type="text"
           placeholder="Cari Jurnal... / Search Papers..."
           value={value}
-          onChange={(e) => onChange(e.target.value)
-          if (minQueryError) setMinQueryError(null)}
+          onChange={(e) => {
+            onChange(e.target.value)
+            if (minQueryError) setMinQueryError(null)
+          }}
           onKeyDown={handleKeyDown}
           onFocus={() => {
             if (value.trim().length >= 2 && suggestions.length > 0) {
