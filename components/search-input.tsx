@@ -24,7 +24,7 @@ export function SearchInput({
   const [minQueryError, setMinQueryError] = useState<string | null>(null)
 
   // Minimum query length for searching (in words)
-  const MIN_WORDS = 10
+  const MIN_WORDS = 5
   const countWords = (text: string) => {
     const t = text.trim()
     if (!t) return 0
