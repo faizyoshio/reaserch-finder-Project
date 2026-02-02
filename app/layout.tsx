@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from 'next-themes'
-import { AuthProvider } from '@/components/auth-provider'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'] })
@@ -54,10 +53,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.className} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AuthProvider>
-            {children}
-            <Analytics />
-          </AuthProvider>
+          {children}
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>

@@ -24,7 +24,7 @@ export function SearchInput({
   const [minQueryError, setMinQueryError] = useState<string | null>(null)
 
   // Minimum query length for searching (in words)
-  const MIN_WORDS = 5
+  const MIN_WORDS = 10
   const countWords = (text: string) => {
     const t = text.trim()
     if (!t) return 0
@@ -198,10 +198,8 @@ export function SearchInput({
           type="text"
           placeholder="Cari Jurnal... / Search Papers..."
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value)
-            if (minQueryError) setMinQueryError(null)
-          }}
+          onChange={(e) => onChange(e.target.value)
+          if (minQueryError) setMinQueryError(null)}
           onKeyDown={handleKeyDown}
           onFocus={() => {
             if (value.trim().length >= 2 && suggestions.length > 0) {

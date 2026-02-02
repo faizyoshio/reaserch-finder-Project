@@ -142,16 +142,6 @@ function HomeContent() {
       const updated = [...savedArticles, newSavedArticle]
       setSavedArticles(updated)
       localStorage.setItem('researchfinder-saved', JSON.stringify(updated))
-      toast({
-        title: 'Article saved',
-        description: 'Article has been saved to your collection',
-      })
-    } else {
-      toast({
-        title: 'Already saved',
-        description: 'This article is already in your collection',
-        variant: 'destructive',
-      })
     }
   }
 
