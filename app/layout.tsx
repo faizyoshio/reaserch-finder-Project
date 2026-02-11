@@ -56,7 +56,7 @@ export default function RootLayout({
       <head>
         {/* Prevent theme flash by applying stored theme class early */}
         <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var k='researchfinder-theme';var v=localStorage.getItem(k);if(v==='dark'||(!v&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')} }catch(e){} })();`}
+          {`(function(){try{var k='researchfinder-theme';var v=localStorage.getItem(k);var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var shouldDark=(v==='dark')||(v==='system'&&prefersDark)||(!v&&prefersDark);document.documentElement.classList.toggle('dark',shouldDark);}catch(e){}})();`}
         </Script>
       </head>
       <body className={`${geist.className} font-sans antialiased`}>

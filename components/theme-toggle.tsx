@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import { Moon, Sun } from 'lucide-react'
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
@@ -20,6 +20,9 @@ export function ThemeToggle() {
     )
   }
 
+  const currentTheme = resolvedTheme || theme
+  const nextTheme = currentTheme === 'dark' ? 'light' : 'dark'
+
   return (
     <button
       onClick={() => {
@@ -28,8 +31,7 @@ export function ThemeToggle() {
           document.documentElement.classList.add('theme-transition')
         } catch {}
 
-        const newTheme = theme === 'dark' ? 'light' : 'dark'
-        setTheme(newTheme)
+        setTheme(nextTheme)
 
         // Remove transition helper shortly after (duration matches CSS)
         try {
@@ -38,10 +40,11 @@ export function ThemeToggle() {
         } catch {}
       }}
       className="glass-button w-10 h-10 flex items-center justify-center rounded-lg transition-transform duration-300 hover:scale-110"
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-      aria-pressed={theme === 'dark'}
+      aria-label={`Switch to ${nextTheme} theme`}
+      aria-pressed={currentTheme === 'dark'}
+      title={theme === 'system' ? `Auto (${currentTheme})` : `Manual (${currentTheme})`}
     >
-      {theme === 'dark' ? (
+      {currentTheme === 'dark' ? (
         <Sun className="h-4 w-4 text-yellow-500" />
       ) : (
         <Moon className="h-4 w-4 text-slate-700" />
