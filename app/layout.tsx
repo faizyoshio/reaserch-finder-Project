@@ -3,7 +3,8 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from '@/components/theme-provider'
+import Script from 'next/script'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'] })
@@ -52,8 +53,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Prevent theme flash by applying stored theme class early */}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function(){try{var k='researchfinder-theme';var v=localStorage.getItem(k);if(v==='dark'||(!v&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')} }catch(e){} })();`}
+        </Script>
+      </head>
       <body className={`${geist.className} font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider>
           {children}
           <Analytics />
         </ThemeProvider>

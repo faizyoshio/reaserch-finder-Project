@@ -6,6 +6,7 @@ export interface ResearchArticle {
   venue?: string
   doi?: string
   url?: string
+  documentType?: string
   citedBy: number
   openAccess: boolean
   source: 'openAlex' | 'crossref' | 'combined'
@@ -20,6 +21,7 @@ export interface SearchParams {
   yearTo?: number
   oaOnly: boolean
   sort: 'relevance' | 'year' | 'citedBy'
+  sortDir?: 'asc' | 'desc'
   documentType?: string
   language?: string
 }

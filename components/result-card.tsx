@@ -11,9 +11,12 @@ interface ResultCardProps {
   isSaved?: boolean
   onSave?: (article: ResearchArticle) => void
   onUnsave?: (articleId: string) => void
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelect?: (id: string) => void
 }
 
-export function ResultCard({ article, isSaved = false, onSave, onUnsave }: ResultCardProps) {
+export function ResultCard({ article, isSaved = false, onSave, onUnsave, selectable = false, selected = false, onToggleSelect }: ResultCardProps) {
   const { toast } = useToast()
   const [loadingExport, setLoadingExport] = useState<'bibtex' | 'ris' | null>(null)
 
@@ -103,8 +106,47 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
     }
   }
 
+  // Get badge color based on document type
+  const getDocumentTypeColor = () => {
+    switch (article.documentType?.toLowerCase()) {
+      case 'journal':
+        return 'bg-blue-500/20 border-blue-400/40 dark:bg-blue-500/15 dark:border-blue-500/30 text-blue-700 dark:text-blue-300'
+      case 'conference':
+        return 'bg-purple-500/20 border-purple-400/40 dark:bg-purple-500/15 dark:border-purple-500/30 text-purple-700 dark:text-purple-300'
+      case 'preprint':
+        return 'bg-orange-500/20 border-orange-400/40 dark:bg-orange-500/15 dark:border-orange-500/30 text-orange-700 dark:text-orange-300'
+      case 'book':
+        return 'bg-indigo-500/20 border-indigo-400/40 dark:bg-indigo-500/15 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
+      default:
+        return 'bg-slate-500/20 border-slate-400/40 dark:bg-slate-500/15 dark:border-slate-500/30'
+    }
+  }
+
+  // Get citation level badge
+  const getCitationLevelBadge = () => {
+    if (article.citedBy >= 100) return { label: '🏆 Highly Cited', color: 'bg-yellow-500/20 border-yellow-400/40 dark:bg-yellow-500/15 dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-300' }
+    if (article.citedBy >= 50) return { label: '🥈 Cited', color: 'bg-slate-500/20 border-slate-400/40 dark:bg-slate-500/15 dark:border-slate-500/30 text-slate-700 dark:text-slate-300' }
+    if (article.citedBy >= 10) return { label: '🥉 Referenced', color: 'bg-orange-500/20 border-orange-400/40 dark:bg-orange-500/15 dark:border-orange-500/30 text-orange-700 dark:text-orange-300' }
+    return null
+  }
+
+  const idKey = article.doi || `${article.source}-${article.id}`
+
   return (
-    <div className="glass-hover glass rounded-2xl p-4 sm:p-6 animate-glass-in mb-4">
+    <div className="relative">
+      {selectable && (
+        <label className="absolute top-3 left-3 z-20">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect?.(idKey)}
+            className="form-checkbox w-4 h-4 accent-primary"
+            aria-label="Select article"
+          />
+        </label>
+      )}
+
+      <div className="glass-hover glass rounded-2xl p-4 sm:p-6 animate-glass-in mb-4">
       {/* Header */}
       <div className="mb-3 sm:mb-4">
         <h3 className="text-base sm:text-lg font-bold leading-snug text-balance text-foreground mb-2">
@@ -121,15 +163,23 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
           <span className="text-foreground/70 font-medium">{article.year}</span>
         </div>
 
-        {article.citedBy > 0 && (
-          <div className="glass-badge">
-            <span className="text-foreground/70">↗ {article.citedBy}</span>
+        {/* Document type badge with color */}
+        {article.documentType && (
+          <div className={`glass-badge ${getDocumentTypeColor()}`}>
+            <span className="font-medium capitalize">{article.documentType}</span>
+          </div>
+        )}
+
+        {/* Citation level badge */}
+        {getCitationLevelBadge() && (
+          <div className={`glass-badge ${getCitationLevelBadge()?.color}`}>
+            <span className="font-medium">{getCitationLevelBadge()?.label}</span>
           </div>
         )}
 
         {article.openAccess && (
           <div className="glass-badge bg-green-500/20 border-green-400/40 dark:bg-green-500/15 dark:border-green-500/30">
-            <span className="text-green-700 dark:text-green-300 font-medium">OA</span>
+            <span className="text-green-700 dark:text-green-300 font-medium">✓ Open Access</span>
           </div>
         )}
 
@@ -138,8 +188,6 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
             {article.venue}
           </div>
         )}
-
-        
       </div>
 
       {/* Action buttons */}
@@ -208,6 +256,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
             <span className="sm:hidden">RIS</span>
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

@@ -151,6 +151,7 @@ export async function GET(request: NextRequest) {
     const yearTo = searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined
     const oaOnly = searchParams.get('oaOnly') === 'true'
     const sort = (searchParams.get('sort') || 'relevance') as 'relevance' | 'year' | 'citedBy'
+    const sortDir = (searchParams.get('sortDir') || 'desc') as 'asc' | 'desc'
     const documentType = searchParams.get('documentType') || undefined
     const language = searchParams.get('language') || undefined
 
@@ -171,7 +172,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check cache
-    const cacheKey = `${q}:${page}:${perPage}:${yearFrom}:${yearTo}:${oaOnly}:${sort}:${documentType}:${language}`
+    const cacheKey = `${q}:${page}:${perPage}:${yearFrom}:${yearTo}:${oaOnly}:${sort}:${sortDir}:${documentType}:${language}`
     const cached = searchCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data)
@@ -202,6 +203,11 @@ export async function GET(request: NextRequest) {
 
     // Sort
     combined = sortArticles(combined, sort)
+
+    // Apply sort direction for numeric sorts when requested
+    if (sortDir === 'asc' && (sort === 'year' || sort === 'citedBy')) {
+      combined = combined.reverse()
+    }
 
     // Paginate
     const start = (page - 1) * perPage

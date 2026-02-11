@@ -8,6 +8,7 @@ import { Footer } from '@/components/footer'
 import { SearchInput } from '@/components/search-input'
 import { SearchFilters } from '@/components/search-filters'
 import { ResultCard } from '@/components/result-card'
+import { SearchStats } from '@/components/search-stats'
 import { ResultSkeleton } from '@/components/result-skeleton'
 import { ExternalSearchLinks } from '@/components/external-search-links'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ function HomeContent() {
     yearTo: searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined,
     oaOnly: searchParams.get('oaOnly') === 'true',
     sort: (searchParams.get('sort') as 'relevance' | 'year' | 'citedBy') || 'relevance',
+    sortDir: (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc',
     documentType: searchParams.get('documentType') || undefined,
     language: searchParams.get('language') || undefined,
   })
@@ -38,10 +40,13 @@ function HomeContent() {
   const [results, setResults] = useState<ResearchArticle[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showIntro, setShowIntro] = useState(true)
   const [hasSearched, setHasSearched] = useState(!!params.q)
   const [hasMore, setHasMore] = useState(false)
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
+
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
 
   const [filtersVisible, setFiltersVisible] = useState(false)
   const toggleFilters = () => setFiltersVisible((v) => !v)
@@ -54,6 +59,18 @@ function HomeContent() {
         setSavedArticles(JSON.parse(saved))
       } catch {
         console.error('[ResearchFinder] Failed to load saved articles')
+      }
+    }
+  }, [])
+
+  // Load recent searches
+  useEffect(() => {
+    const recent = localStorage.getItem('researchfinder-recent')
+    if (recent) {
+      try {
+        setRecentSearches(JSON.parse(recent))
+      } catch {
+        // ignore
       }
     }
   }, [])
@@ -80,6 +97,7 @@ function HomeContent() {
           perPage: searchParams.perPage.toString(),
           oaOnly: searchParams.oaOnly.toString(),
           sort: searchParams.sort,
+          ...(searchParams.sortDir && { sortDir: searchParams.sortDir }),
           ...(searchParams.yearFrom && { yearFrom: searchParams.yearFrom.toString() }),
           ...(searchParams.yearTo && { yearTo: searchParams.yearTo.toString() }),
           ...(searchParams.documentType && { documentType: searchParams.documentType }),
@@ -165,6 +183,72 @@ function HomeContent() {
   const isSaved = (article: ResearchArticle) =>
     savedArticles.some((s) => s.doi === article.doi || (s.source === article.source && s.id === article.id))
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const exportSelectedBibtex = () => {
+    if (selectedIds.size === 0) return
+    // build simple BibTeX entries from current results
+    const entries: string[] = []
+    results.forEach((article) => {
+      const idKey = article.doi || `${article.source}-${article.id}`
+      if (!selectedIds.has(idKey)) return
+      const citeKey = (article.doi || article.id || article.title).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30)
+      const authors = (article.authors || []).join(' and ')
+      entries.push(`@article{${citeKey},\n  title = {${article.title}},\n  author = {${authors}},\n  year = {${article.year || ''}},\n  url = {${article.url || ''}}\n}`)
+    })
+
+    const blob = new Blob([entries.join('\n\n')], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `researchfinder-export.bib`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    clearSelection()
+  }
+
+  // Keyboard shortcuts: '/' focus search, 'n' next, 'p' prev
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // ignore when typing in inputs
+      const active = document.activeElement
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || (active as HTMLElement).isContentEditable)) return
+
+      if (e.key === '/') {
+        e.preventDefault()
+        const el = document.querySelector('input[aria-label="Search for academic articles"]') as HTMLInputElement | null
+        el?.focus()
+      }
+      if (e.key === 'n') {
+        if (hasMore) {
+          const newParams = { ...params, page: params.page + 1 }
+          setParams(newParams)
+          performSearch(params.q, newParams)
+        }
+      }
+      if (e.key === 'p') {
+        if (params.page > 1) {
+          const newParams = { ...params, page: Math.max(1, params.page - 1) }
+          setParams(newParams)
+          performSearch(params.q, newParams)
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [hasMore, params, performSearch])
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -226,13 +310,73 @@ function HomeContent() {
         )}
 
         {!loading && hasSearched && results.length === 0 && (
-          <div className="glass rounded-2xl p-8 text-center">
-            <p className="text-foreground/70 text-lg">
-              No results found
-            </p>
-            <p className="text-sm text-foreground/50 mt-2">
-              Try with different keywords
-            </p>
+          <div className="glass rounded-2xl p-6 sm:p-8 mb-6">
+            <h3 className="text-lg font-bold mb-2">No results for "{params.q}"</h3>
+            <p className="text-sm text-foreground/70 mb-3">Try different keywords, broaden the query, or clear filters.</p>
+
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <Button
+                onClick={() => {
+                  const newParams = { ...params, yearFrom: undefined, yearTo: undefined, documentType: undefined, oaOnly: false, page: 1 }
+                  setParams(newParams)
+                  if (params.q) performSearch(params.q, newParams)
+                }}
+                className="glass-button"
+              >
+                Clear Filters
+              </Button>
+
+              <Button
+                onClick={() => {
+                  // try a broader search by using first two words
+                  const parts = (params.q || '').trim().split(/\s+/).filter(Boolean)
+                  const newQuery = parts.length > 2 ? parts.slice(0, 2).join(' ') : params.q
+                  const newParams = { ...params, q: newQuery, page: 1 }
+                  setQuery(newQuery)
+                  setParams(newParams)
+                  performSearch(newQuery, newParams)
+                }}
+                className="glass-button"
+              >
+                Broaden Search
+              </Button>
+
+              <Button
+                onClick={() => {
+                  const newParams = { ...params, page: 1 }
+                  setParams(newParams)
+                  if (params.q) performSearch(params.q, newParams)
+                }}
+                className="glass-button"
+              >
+                Retry
+              </Button>
+            </div>
+
+            {recentSearches.length > 0 && (
+              <div className="mb-3">
+                <div className="text-sm text-foreground/60 mb-2">Recent searches</div>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => {
+                        const newParams = { ...params, q: r, page: 1 }
+                        setQuery(r)
+                        setParams(newParams)
+                        performSearch(r, newParams)
+                      }}
+                      className="glass-badge text-sm"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="text-sm text-foreground/60 mt-3">Try searching externally:</div>
+            <ExternalSearchLinks query={params.q} />
           </div>
         )}
 
@@ -248,28 +392,88 @@ function HomeContent() {
                 <span className="font-medium">{total.toLocaleString()}</span>
                 <span> results</span>
               </div>
-              <div className="text-sm text-foreground/50">
-                Page <span className="font-medium text-foreground">{params.page}</span>
+
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-foreground/50 mr-2">
+                  Page <span className="font-medium text-foreground">{params.page}</span>
+                </div>
+
+                {/* Sort order selector */}
+                <label className="text-sm text-foreground/60 flex items-center gap-2">
+                  <span className="text-foreground/50">Sort:</span>
+                  <select
+                    aria-label="Sort results"
+                    value={params.sort}
+                    onChange={(e) => {
+                      const newSort = e.target.value as 'relevance' | 'year' | 'citedBy'
+                      const newParams = { ...params, sort: newSort, page: 1 }
+                      setParams(newParams)
+                      if (params.q) performSearch(params.q, newParams)
+                    }}
+                    className="glass-button px-2 py-1 text-sm"
+                  >
+                    <option value="relevance">Relevance</option>
+                    <option value="year">Year</option>
+                    <option value="citedBy">Cited By</option>
+                  </select>
+
+                  {/* Sort direction toggle */}
+                  <button
+                    aria-label="Toggle sort direction"
+                    title={params.sortDir === 'asc' ? 'Ascending' : 'Descending'}
+                    onClick={() => {
+                      const newDir = params.sortDir === 'asc' ? 'desc' : 'asc'
+                      const newParams = { ...params, sortDir: newDir, page: 1 }
+                      setParams(newParams)
+                      if (params.q) performSearch(params.q, newParams)
+                    }}
+                    className="glass-button px-2 py-1 text-sm"
+                  >
+                    {params.sortDir === 'asc' ? '↑' : '↓'}
+                  </button>
+                </label>
               </div>
             </div>
 
+            {/* Search statistics */}
+            <SearchStats results={results} />
+
+            {/* Breadcrumb */}
+            <div className="mb-4 text-sm text-foreground/50">Home &gt; Search</div>
+
             {/* Results List */}
             <div className="result-list">
-              {results.map((article) => (
-                <ResultCard
-                  key={article.doi || `${article.source}-${article.id}`}
-                  article={article}
-                  isSaved={isSaved(article)}
-                  onSave={handleSaveArticle}
-                  onUnsave={handleUnsaveArticle}
-                />
-              ))}
+              {results.map((article) => {
+                const idKey = article.doi || `${article.source}-${article.id}`
+                return (
+                  <ResultCard
+                    key={idKey}
+                    article={article}
+                    isSaved={isSaved(article)}
+                    onSave={handleSaveArticle}
+                    onUnsave={handleUnsaveArticle}
+                    selectable
+                    selected={selectedIds.has(idKey)}
+                    onToggleSelect={toggleSelect}
+                  />
+                )
+              })}
             </div>
 
             {/* Pagination Controls */}
             {(hasMore || params.page > 1) && (
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 glass rounded-2xl p-6">
-                <Button
+                <div className="flex items-center gap-3">
+                  {selectedIds.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-foreground/70">{selectedIds.size} selected</span>
+                      <Button onClick={exportSelectedBibtex} className="glass-button">
+                        Export Selected
+                      </Button>
+                    </div>
+                  )}
+
+                  <Button
                   onClick={() => {
                     const newParams = { ...params, page: Math.max(1, params.page - 1) }
                     setParams(newParams)
@@ -306,6 +510,7 @@ function HomeContent() {
                 >
                   Next Page →
                 </Button>
+                </div>
               </div>
             )}
           </div>

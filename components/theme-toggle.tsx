@@ -23,9 +23,24 @@ export function ThemeToggle() {
 
   return (
     <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onClick={() => {
+        // Add temporary class to enable smooth theme transitions
+        try {
+          document.documentElement.classList.add('theme-transition')
+        } catch {}
+
+        const newTheme = theme === 'dark' ? 'light' : 'dark'
+        setTheme(newTheme)
+
+        // Remove transition helper shortly after (duration matches CSS)
+        try {
+          const duration = 260
+          window.setTimeout(() => document.documentElement.classList.remove('theme-transition'), duration)
+        } catch {}
+      }}
       className="glass-button w-10 h-10 flex items-center justify-center rounded-lg transition-transform duration-300 hover:scale-110"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+      aria-pressed={theme === 'dark'}
     >
       {theme === 'dark' ? (
         <Sun className="h-4 w-4 text-yellow-500" />

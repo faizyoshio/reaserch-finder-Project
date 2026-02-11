@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { Search, X, AlertCircle } from 'lucide-react'
 import { validation } from '@/lib/utils'
 
@@ -12,17 +12,54 @@ interface SearchInputProps {
 
 export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  useEffect(() => {
+    const recent = localStorage.getItem('researchfinder-recent')
+    if (recent) {
+      try {
+        setSuggestions(JSON.parse(recent))
+      } catch {
+        setSuggestions([])
+      }
+    }
+  }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      onSearch()
+      performSearch()
     }
+  }
+
+  const performSearch = () => {
+    const q = inputRef.current?.value.trim() || ''
+    if (!q) return
+    // save recent
+    try {
+      const cur = JSON.parse(localStorage.getItem('researchfinder-recent') || '[]') as string[]
+      const dedup = [q, ...cur.filter((s) => s !== q)].slice(0, 10)
+      localStorage.setItem('researchfinder-recent', JSON.stringify(dedup))
+      setSuggestions(dedup)
+    } catch {
+      localStorage.setItem('researchfinder-recent', JSON.stringify([q]))
+      setSuggestions([q])
+    }
+    onChange(q)
+    onSearch()
+    setShowSuggestions(false)
+  }
+
+  const onSuggestionClick = (s: string) => {
+    onChange(s)
+    onSearch()
+    setShowSuggestions(false)
   }
 
   return (
     <div className="relative w-full">
-      <div className="glass-input flex items-center gap-2 px-4 py-3 sm:py-4">
+      <div className="glass-input flex items-center gap-2 px-4 py-3 sm:py-4" onFocus={() => setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}>
         <Search className="w-5 h-5 text-foreground/50 flex-shrink-0" />
         <input
           ref={inputRef}
@@ -47,6 +84,20 @@ export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
           </button>
         )}
       </div>
+
+      {/* Suggestions + Recent Searches */}
+      {showSuggestions && (suggestions?.length ?? 0) > 0 && (
+        <div className="absolute left-0 right-0 mt-2 glass rounded-xl p-2 z-40">
+          <div className="text-xs text-foreground/60 mb-2 px-2">Recent searches</div>
+          <div className="flex flex-col gap-1">
+            {suggestions.map((s) => (
+              <button key={s} onMouseDown={() => onSuggestionClick(s)} className="text-left px-3 py-2 rounded hover:bg-foreground/5">
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Validation Message */}
       {value && !validation.isValidSearchQuery(value) && (
