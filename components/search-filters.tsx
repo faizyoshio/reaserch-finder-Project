@@ -71,10 +71,11 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                 })
               }
               className="glass-input w-full text-sm text-foreground appearance-none pr-8"
+              style={{ color: 'var(--foreground)' }}
             >
-              <option value="">All Types</option>
+              <option className="text-foreground" value="">All Types</option>
               {documentTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option className="text-foreground" key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
@@ -98,10 +99,11 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                 })
               }
               className="glass-input w-full text-sm text-foreground appearance-none pr-8"
+              style={{ color: 'var(--foreground)' }}
             >
-              <option value="">All Languages</option>
+              <option className="text-foreground" value="">All Languages</option>
               {languageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option className="text-foreground" key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
@@ -126,10 +128,11 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                 })
               }
               className="glass-input w-full text-sm text-foreground"
+              style={{ color: 'var(--foreground)' }}
             >
-              <option value="">Select</option>
+              <option className="text-foreground" value="">Select</option>
               {yearOptions.map((year) => (
-                <option key={year} value={year}>
+                <option className="text-foreground" key={year} value={year}>
                   {year}
                 </option>
               ))}
@@ -150,10 +153,11 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                 })
               }
               className="glass-input w-full text-sm text-foreground"
+              style={{ color: 'var(--foreground)' }}
             >
-              <option value="">Select</option>
+              <option className="text-foreground" value="">Select</option>
               {yearOptions.map((year) => (
-                <option key={year} value={year}>
+                <option className="text-foreground" key={year} value={year}>
                   {year}
                 </option>
               ))}
@@ -175,10 +179,11 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                   page: 1,
                 })
               }
-              className="glass-input w-full text-sm appearance-none pr-8"
+              className="glass-input w-full text-sm text-foreground appearance-none pr-8"
+              style={{ color: 'var(--foreground)' }}
             >
               {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option className="text-foreground" key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
