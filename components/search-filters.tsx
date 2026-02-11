@@ -230,7 +230,7 @@ export function FilterToggleButton({ isVisible, onClick }: { isVisible: boolean;
 export function FilterPanel({ isVisible, children }: { isVisible: boolean; children?: React.ReactNode }) {
   return (
     <div
-      className={`filter-panel ${isVisible ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}
+      className={`filter-panel ${isVisible ? 'max-h-screen opacity-100 pointer-events-auto' : 'max-h-0 opacity-0 pointer-events-none'}`}
     >
       {children}
     </div>
