@@ -16,7 +16,6 @@ interface ResultCardProps {
 export function ResultCard({ article, isSaved = false, onSave, onUnsave }: ResultCardProps) {
   const { toast } = useToast()
   const [loadingExport, setLoadingExport] = useState<'bibtex' | 'ris' | null>(null)
-  const [loadingExport, setLoadingExport] = useState<'bibtex' | 'ris' | null>(null)
 
   const handleExport = async (format: 'bibtex' | 'ris') => {
     if (!article.doi) {
@@ -209,23 +208,6 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
             <span className="sm:hidden">RIS</span>
           </button>
         </div>
-
-        {/* Check link button */}
-        {article.url && (
-          <button
-            onClick={handleCheckLink}
-            disabled={checkingLink}
-            className="glass-button inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
-          >
-            {checkingLink ? (
-              <div className="w-3.5 h-3.5 rounded-full border 2 border-transparent border-t-foreground animate-spin" />
-            ) : (
-              <AlertCircle className="w-3.5 h-3.5" />
-            )}
-            <span className="hidden sm:inline">Check Link</span>
-            <span className="sm:hidden">Check</span>
-          </button>
-        )}
       </div>
     </div>
   )
