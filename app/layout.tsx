@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from 'next-themes'
-import { AuthProvider } from '@/components/auth-provider'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'] })
@@ -12,25 +11,25 @@ const geistMono = Geist_Mono({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'ResearchFinder - Academic Literature Discovery',
   description: 'ResearchFinder is a dedicated scholarly platform designed to streamline the discovery of academic literature and research publications.',
-  generator: 'reaserch-finder.faizyoshio.my.id',
+  generator: 'v0.app',
   keywords: ['research', 'academic', 'journals', 'publications', 'literature'],
   authors: [{ name: 'faizyoshio.my.id' }],
   icons: {
     icon: [
       {
-        url: '/favicon.ico',
+        url: '/icon-light-32x32.png',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/favicon.ico',
+        url: '/icon-dark-32x32.png',
         media: '(prefers-color-scheme: dark)',
       },
       {
-        url: '/favicon.ico',
+        url: '/icon.svg',
         type: 'image/svg+xml',
       },
     ],
-    apple: '/apple-touch-icon.png',
+    apple: '/apple-icon.png',
   },
 }
 
@@ -54,10 +53,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.className} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AuthProvider>
-            {children}
-            <Analytics />
-          </AuthProvider>
+          {children}
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
