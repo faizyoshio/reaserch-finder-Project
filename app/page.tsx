@@ -26,7 +26,7 @@ function HomeContent() {
   const [params, setParams] = useState<SearchParams>({
     q: searchParams.get('q') || '',
     page: parseInt(searchParams.get('page') || '1'),
-    perPage: 25,
+    perPage: 10,
     yearFrom: searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!) : undefined,
     yearTo: searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined,
     oaOnly: searchParams.get('oaOnly') === 'true',
@@ -239,8 +239,18 @@ function HomeContent() {
         {!loading && results.length > 0 && (
           <div>
             {/* Results Info */}
-            <div className="mb-4 text-sm text-foreground/60">
-              Showing {((params.page - 1) * params.perPage) + 1} - {((params.page - 1) * params.perPage) + results.length} of {total} results
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="text-sm text-foreground/60">
+                <span className="font-medium">
+                  {((params.page - 1) * params.perPage) + 1}-{((params.page - 1) * params.perPage) + results.length}
+                </span>
+                <span> of </span>
+                <span className="font-medium">{total.toLocaleString()}</span>
+                <span> results</span>
+              </div>
+              <div className="text-sm text-foreground/50">
+                Page <span className="font-medium text-foreground">{params.page}</span>
+              </div>
             </div>
 
             {/* Results List */}
@@ -256,9 +266,9 @@ function HomeContent() {
               ))}
             </div>
 
-            {/* Pagination */}
+            {/* Pagination Controls */}
             {(hasMore || params.page > 1) && (
-              <div className="flex justify-center gap-2 mt-8">
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 glass rounded-2xl p-6">
                 <Button
                   onClick={() => {
                     const newParams = { ...params, page: Math.max(1, params.page - 1) }
@@ -267,15 +277,20 @@ function HomeContent() {
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
                   disabled={params.page === 1}
-                  className="glass-button"
+                  className="glass-button w-full sm:w-auto"
                 >
-                  Previous
+                  ← Previous Page
                 </Button>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-foreground/70">
-                    Page {params.page}
-                  </span>
+                <div className="text-center">
+                  <div className="text-sm text-foreground/70">
+                    Page <span className="font-bold text-foreground">{params.page}</span>
+                  </div>
+                  {total > 0 && (
+                    <div className="text-xs text-foreground/50">
+                      {Math.ceil(total / params.perPage)} pages total
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -286,9 +301,10 @@ function HomeContent() {
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
                   disabled={!hasMore}
-                  className="glass-button"
+                  className="glass-button w-full sm:w-auto"
+                  style={{ opacity: hasMore ? 1 : 0.5, cursor: hasMore ? 'pointer' : 'not-allowed' }}
                 >
-                  Next
+                  Next Page →
                 </Button>
               </div>
             )}

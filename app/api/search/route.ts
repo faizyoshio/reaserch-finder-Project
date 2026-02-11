@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const q = searchParams.get('q')?.trim()
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const perPage = Math.min(25, Math.max(1, parseInt(searchParams.get('perPage') || '25')))
+    const perPage = Math.min(25, Math.max(1, parseInt(searchParams.get('perPage') || '10')))
     const yearFrom = searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!) : undefined
     const yearTo = searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined
     const oaOnly = searchParams.get('oaOnly') === 'true'
