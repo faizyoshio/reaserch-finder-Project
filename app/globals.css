@@ -139,44 +139,6 @@
   --glass-border: rgba(255, 255, 255, 0.2);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
 @layer base {
   /* ============================================
      TYPOGRAPHY - iOS 26 STYLE
@@ -492,6 +454,40 @@
   }
 
   /* ============================================
+     GLOBAL ICON SIZING - RESPONSIVE
+     ============================================ */
+  svg {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
+  .icon-xs {
+    width: clamp(0.75rem, 2vw, 1rem);
+    height: clamp(0.75rem, 2vw, 1rem);
+  }
+
+  .icon-sm {
+    width: clamp(1rem, 3vw, 1.5rem);
+    height: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .icon-md {
+    width: clamp(1.2rem, 4vw, 1.75rem);
+    height: clamp(1.2rem, 4vw, 1.75rem);
+  }
+
+  .icon-lg {
+    width: clamp(1.5rem, 5vw, 2rem);
+    height: clamp(1.5rem, 5vw, 2rem);
+  }
+
+  .icon-xl {
+    width: clamp(2rem, 6vw, 2.5rem);
+    height: clamp(2rem, 6vw, 2.5rem);
+  }
+
+  /* ============================================
      MOBILE (< 640px)
      ============================================ */
   @media (max-width: 639px) {
@@ -534,17 +530,6 @@
       margin-top: var(--space-md);
     }
 
-    /* Icon sizing for mobile */
-    .icon-sm {
-      width: clamp(1rem, 5vw, 1.2rem);
-      height: clamp(1rem, 5vw, 1.2rem);
-    }
-
-    .icon-md {
-      width: clamp(1.2rem, 6vw, 1.5rem);
-      height: clamp(1.2rem, 6vw, 1.5rem);
-    }
-
     /* Touch targets - min 44px */
     button, a[role="button"] {
       min-height: 44px;
@@ -584,6 +569,22 @@
 
     .result-list > * + * {
       margin-top: var(--space-lg);
+    }
+
+    /* Icon visibility on tablet portrait */
+    svg {
+      color: inherit;
+      opacity: 1;
+    }
+
+    .icon-sm {
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
+    .icon-md {
+      width: 1.375rem;
+      height: 1.375rem;
     }
   }
 
@@ -640,6 +641,22 @@
       flex: 1;
       min-width: 0;
     }
+
+    /* Icon visibility on tablet landscape */
+    svg {
+      color: inherit;
+      opacity: 1;
+    }
+
+    .icon-sm {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .icon-md {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
   }
 
   /* ============================================
@@ -688,6 +705,42 @@
 
     .result-list > * + * {
       margin-top: var(--space-xl);
+    }
+
+    /* Icon visibility on desktop */
+    svg {
+      color: inherit;
+      opacity: 1;
+    }
+
+    button svg,
+    a svg {
+      color: currentColor;
+    }
+
+    .icon-xs {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    .icon-sm {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .icon-md {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
+    .icon-lg {
+      width: 1.75rem;
+      height: 1.75rem;
+    }
+
+    .icon-xl {
+      width: 2rem;
+      height: 2rem;
     }
   }
 
@@ -747,6 +800,42 @@
     .result-card:hover {
       transform: translateY(-4px);
       box-shadow: var(--shadow-lg);
+    }
+
+    /* Icon visibility on large desktop */
+    svg {
+      color: inherit;
+      opacity: 1;
+    }
+
+    button svg,
+    a svg {
+      color: currentColor;
+    }
+
+    .icon-xs {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    .icon-sm {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .icon-md {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
+    .icon-lg {
+      width: 1.75rem;
+      height: 1.75rem;
+    }
+
+    .icon-xl {
+      width: 2rem;
+      height: 2rem;
     }
   }
 
