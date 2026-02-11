@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/toaster'
 import Script from 'next/script'
 import './globals.css'
 
@@ -62,7 +63,9 @@ export default function RootLayout({
       <body className={`${geist.className} font-sans antialiased`}>
         <ThemeProvider>
           {children}
+          <Toaster />
           <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
