@@ -27,7 +27,7 @@ function HomeContent() {
   const [params, setParams] = useState<SearchParams>({
     q: searchParams.get('q') || '',
     page: parseInt(searchParams.get('page') || '1'),
-    perPage: 10,
+    perPage: 25,
     yearFrom: searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!) : undefined,
     yearTo: searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined,
     oaOnly: searchParams.get('oaOnly') === 'true',
