@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Check, Sparkles } from 'lucide-react'
+import RouteLoading from './loading'
 import { TopBar } from '@/components/top-bar'
 import { Footer } from '@/components/footer'
 import { SearchInput } from '@/components/search-input'
@@ -48,6 +49,7 @@ function HomeContent() {
   const [hasSearched, setHasSearched] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
+  const [statusMessage, setStatusMessage] = useState('Ready to search.')
 
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [lastQuickPreset, setLastQuickPreset] = useState<QuickPreset | null>(() => {
@@ -113,6 +115,7 @@ function HomeContent() {
   const performSearch = React.useCallback(
     async (searchQuery: string, searchParams: SearchParams) => {
       if (!validation.isValidSearchQuery(searchQuery)) {
+        setStatusMessage(validation.getValidationMessage(searchQuery))
         toast({
           title: 'Warning',
           description: validation.getValidationMessage(searchQuery),
@@ -123,6 +126,7 @@ function HomeContent() {
 
       setLoading(true)
       setShowIntro(false)
+      setHasSearched(true)
 
       try {
         const queryString = new URLSearchParams({
@@ -139,22 +143,44 @@ function HomeContent() {
         })
 
         const response = await fetch(`/api/search?${queryString}`)
-        if (!response.ok) throw new Error('Search failed')
+        if (!response.ok) {
+          let message = 'Search failed'
+          try {
+            const payload = await response.json()
+            message = payload.error || message
+          } catch {
+            // ignore parse error
+          }
+          throw new Error(message)
+        }
 
         const data: SearchResponse = await response.json()
         setResults(data.articles)
         setTotal(data.total)
         setHasMore(Boolean(data.hasMore))
+        if (data.warnings && data.warnings.length > 0) {
+          toast({
+            title: 'Partial Results',
+            description: data.warnings.join(' '),
+          })
+        }
+        setStatusMessage(
+          data.articles.length > 0
+            ? `${data.total.toLocaleString()} results found.`
+            : `No results found for "${searchQuery}".`
+        )
 
         // Update URL
         router.push(`/?${queryString}`)
       } catch (error) {
         console.error('[ResearchFinder] Search error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Search failed'
         toast({
           title: 'Error',
-          description: 'Search failed',
+          description: errorMessage,
           variant: 'destructive',
         })
+        setStatusMessage(errorMessage)
         setResults([])
       } finally {
         setLoading(false)
@@ -207,8 +233,8 @@ function HomeContent() {
     }
   }
 
-  const handleUnsaveArticle = (articleId: string) => {
-    const updated = savedArticles.filter((s) => s.id !== articleId)
+  const handleUnsaveArticle = (articleKey: string) => {
+    const updated = savedArticles.filter((s) => (s.doi || `${s.source}-${s.id}`) !== articleKey)
     setSavedArticles(updated)
     localStorage.setItem('researchfinder-saved', JSON.stringify(updated))
   }
@@ -226,6 +252,34 @@ function HomeContent() {
   }
 
   const clearSelection = () => setSelectedIds(new Set())
+  const getSelectedArticles = () =>
+    results.filter((article) => {
+      const key = article.doi || `${article.source}-${article.id}`
+      return selectedIds.has(key)
+    })
+
+  const saveSelectedArticles = () => {
+    const selectedArticles = getSelectedArticles()
+    if (selectedArticles.length === 0) return
+
+    let added = 0
+    const merged = [...savedArticles]
+    selectedArticles.forEach((article) => {
+      const exists = merged.some(
+        (saved) => saved.doi === article.doi || (saved.source === article.source && saved.id === article.id)
+      )
+      if (exists) return
+      merged.push({ ...article, savedAt: new Date().toISOString() })
+      added += 1
+    })
+
+    setSavedArticles(merged)
+    localStorage.setItem('researchfinder-saved', JSON.stringify(merged))
+    toast({
+      title: 'Saved',
+      description: `${added} article${added === 1 ? '' : 's'} added to Saved.`,
+    })
+  }
 
   const exportSelectedBibtex = () => {
     if (selectedIds.size === 0) return
@@ -249,6 +303,60 @@ function HomeContent() {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
     clearSelection()
+  }
+
+  const exportSelectedRis = () => {
+    if (selectedIds.size === 0) return
+    const selectedArticles = getSelectedArticles()
+    const entries = selectedArticles.map((article) => {
+      const authorLines = (article.authors || []).map((author) => `AU  - ${author}`).join('\n')
+      return [
+        'TY  - JOUR',
+        `TI  - ${article.title}`,
+        authorLines,
+        `PY  - ${article.year || ''}`,
+        article.venue ? `JO  - ${article.venue}` : '',
+        article.doi ? `DO  - ${article.doi}` : '',
+        article.url ? `UR  - ${article.url}` : '',
+        'ER  - ',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    })
+
+    const blob = new Blob([entries.join('\n\n')], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'researchfinder-export.ris'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    clearSelection()
+  }
+
+  const openSelectedDoi = () => {
+    const selectedWithDoi = getSelectedArticles().filter((article) => article.doi)
+    if (selectedWithDoi.length === 0) {
+      toast({
+        title: 'No DOI',
+        description: 'Selected articles do not have DOI links.',
+      })
+      return
+    }
+
+    const maxTabs = 8
+    selectedWithDoi.slice(0, maxTabs).forEach((article) => {
+      window.open(`https://doi.org/${article.doi}`, '_blank', 'noopener,noreferrer')
+    })
+
+    if (selectedWithDoi.length > maxTabs) {
+      toast({
+        title: 'Open limit applied',
+        description: `Opened first ${maxTabs} DOI links for safety.`,
+      })
+    }
   }
 
   const applyQuickPreset = (preset: QuickPreset) => {
@@ -313,7 +421,10 @@ function HomeContent() {
     <div className="min-h-screen flex flex-col">
       <TopBar />
 
-      <main className="flex-1 px-2 sm:px-4 py-4 sm:py-6 max-w-5xl mx-auto w-full">
+      <main id="main-content" aria-busy={loading} className="flex-1 px-2 sm:px-4 py-4 sm:py-6 max-w-5xl mx-auto w-full">
+        <div className="sr-only" role="status" aria-live="polite">
+          {loading ? 'Searching articles...' : statusMessage}
+        </div>
         {/* Search & Filter Toggle */}
         <div className="flex items-center gap-2 mb-4 search-toggle-stack">
           <div className="flex-1">
@@ -613,6 +724,7 @@ function HomeContent() {
                   <ResultCard
                     key={idKey}
                     article={article}
+                    query={params.q}
                     isSaved={isSaved(article)}
                     onSave={handleSaveArticle}
                     onUnsave={handleUnsaveArticle}
@@ -625,55 +737,69 @@ function HomeContent() {
             </div>
 
             {/* Pagination Controls */}
-            {(hasMore || params.page > 1) && (
+            {(hasMore || params.page > 1 || selectedIds.size > 0) && (
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 glass rounded-2xl p-6">
                 <div className="flex items-center gap-3">
                   {selectedIds.size > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-foreground/70">{selectedIds.size} selected</span>
+                      <Button onClick={saveSelectedArticles} className="glass-button">
+                        Save Selected
+                      </Button>
                       <Button onClick={exportSelectedBibtex} className="glass-button">
-                        Export Selected
+                        Export BibTeX
+                      </Button>
+                      <Button onClick={exportSelectedRis} className="glass-button">
+                        Export RIS
+                      </Button>
+                      <Button onClick={openSelectedDoi} className="glass-button">
+                        Open DOI
                       </Button>
                     </div>
                   )}
 
-                  <Button
-                  onClick={() => {
-                    const newParams = { ...params, page: Math.max(1, params.page - 1) }
-                    setParams(newParams)
-                    performSearch(params.q, newParams)
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }}
-                  disabled={params.page === 1}
-                  className="glass-button w-full sm:w-auto"
-                >
-                  ← Previous Page
-                </Button>
+                  {(hasMore || params.page > 1) && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          const newParams = { ...params, page: Math.max(1, params.page - 1) }
+                          setParams(newParams)
+                          performSearch(params.q, newParams)
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                        disabled={params.page === 1}
+                        className="glass-button w-full sm:w-auto"
+                      >
+                        Previous Page
+                      </Button>
 
-                <div className="text-center">
-                  <div className="text-sm text-foreground/70">
-                    Page <span className="font-bold text-foreground">{params.page}</span>
-                  </div>
-                  {total > 0 && (
-                    <div className="text-xs text-foreground/50">
-                      {Math.ceil(total / params.perPage)} pages total
-                    </div>
+                      <div className="text-center">
+                        <div className="text-sm text-foreground/70">
+                          Page <span className="font-bold text-foreground">{params.page}</span>
+                        </div>
+                        {total > 0 && (
+                          <div className="text-xs text-foreground/50">
+                            {Math.ceil(total / params.perPage)} pages total
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          const newParams = { ...params, page: params.page + 1 }
+                          setParams(newParams)
+                          performSearch(params.q, newParams)
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                        disabled={!hasMore}
+                        className="glass-button w-full sm:w-auto"
+                        style={{ opacity: hasMore ? 1 : 0.5, cursor: hasMore ? 'pointer' : 'not-allowed' }}
+                      >
+                        Next Page
+                      </Button>
+                    </>
                   )}
-                </div>
 
-                <Button
-                  onClick={() => {
-                    const newParams = { ...params, page: params.page + 1 }
-                    setParams(newParams)
-                    performSearch(params.q, newParams)
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }}
-                  disabled={!hasMore}
-                  className="glass-button w-full sm:w-auto"
-                  style={{ opacity: hasMore ? 1 : 0.5, cursor: hasMore ? 'pointer' : 'not-allowed' }}
-                >
-                  Next Page →
-                </Button>
                 </div>
               </div>
             )}
@@ -688,7 +814,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-foreground/50">Loading...</div></div>}>
+    <Suspense fallback={<RouteLoading />}>
       <HomeContent />
     </Suspense>
   )

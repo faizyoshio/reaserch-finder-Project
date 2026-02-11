@@ -5,6 +5,75 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export interface ParsedSearchSyntax {
+  cleanedQuery: string
+  author?: string
+  yearFrom?: number
+  yearTo?: number
+  phrases: string[]
+  hasStructuredSyntax: boolean
+}
+
+export function parseSearchSyntax(query: string): ParsedSearchSyntax {
+  const raw = query.trim()
+  let working = raw
+  let author: string | undefined
+  const phrases: string[] = []
+  const authorQuoted = /author:"([^"]+)"/i
+  const authorSimple = /author:([^\s]+)/i
+
+  const quotedMatch = raw.match(authorQuoted)
+  if (quotedMatch?.[1]) {
+    author = quotedMatch[1].trim()
+    working = working.replace(authorQuoted, ' ')
+  } else {
+    const simpleMatch = working.match(authorSimple)
+    if (simpleMatch?.[1]) {
+      author = simpleMatch[1].trim()
+      working = working.replace(authorSimple, ' ')
+    }
+  }
+
+  const phraseRegex = /"([^"]+)"/g
+  working = working.replace(phraseRegex, (_, phrase: string) => {
+    const trimmed = phrase.trim()
+    if (trimmed) phrases.push(trimmed)
+    return ' '
+  })
+
+  let yearFrom: number | undefined
+  let yearTo: number | undefined
+  const yearRegex = /year:(>=|<=|>|<|=)?(\d{4})/gi
+  working = working.replace(yearRegex, (_, operator: string | undefined, yearStr: string) => {
+    const year = parseInt(yearStr, 10)
+    if (Number.isNaN(year)) return ' '
+
+    if (!operator || operator === '=') {
+      yearFrom = year
+      yearTo = year
+    } else if (operator === '>=' || operator === '>') {
+      const normalized = operator === '>' ? year + 1 : year
+      yearFrom = yearFrom ? Math.max(yearFrom, normalized) : normalized
+    } else if (operator === '<=' || operator === '<') {
+      const normalized = operator === '<' ? year - 1 : year
+      yearTo = yearTo ? Math.min(yearTo, normalized) : normalized
+    }
+    return ' '
+  })
+
+  const cleanedQuery = working.replace(/\s+/g, ' ').trim()
+  const hasStructuredSyntax = Boolean(author || yearFrom || yearTo || phrases.length > 0)
+
+  return {
+    cleanedQuery,
+    author,
+    yearFrom,
+    yearTo,
+    phrases,
+    hasStructuredSyntax,
+  }
+}
+
 // Accessibility utilities
 export const a11y = {
   visuallyHidden: 'sr-only',
@@ -31,29 +100,34 @@ export const breakpoints = {
 
 // Validation utilities
 export const validation = {
-  // Minimum 3 words validation
+  // Free text requires at least 3 words unless structured syntax is provided.
   isValidSearchQuery: (query: string): boolean => {
     if (!query.trim()) return false
-    const words = query.trim().split(/\s+/).filter(word => word.length > 0)
+    const parsed = parseSearchSyntax(query)
+    const words = parsed.cleanedQuery.split(/\s+/).filter(word => word.length > 0)
+    if (parsed.hasStructuredSyntax) return true
     return words.length >= 3
   },
   
   // Get word count
   getWordCount: (query: string): number => {
-    return query.trim().split(/\s+/).filter(word => word.length > 0).length
+    const parsed = parseSearchSyntax(query)
+    return parsed.cleanedQuery.split(/\s+/).filter(word => word.length > 0).length
   },
   
   // Get validation message
   getValidationMessage: (query: string): string => {
+    const parsed = parseSearchSyntax(query)
     const wordCount = validation.getWordCount(query)
+    if (parsed.hasStructuredSyntax) return ''
     if (wordCount === 0) {
       return 'Enter keywords'
     }
     if (wordCount === 1) {
-      return `Minimum 3 words required. Only ${wordCount} word provided`
+      return `Minimum 3 words required for free-text query. Only ${wordCount} word provided`
     }
     if (wordCount < 3) {
-      return `Minimum 3 words required. Only ${wordCount} words provided`
+      return `Minimum 3 words required for free-text query. Only ${wordCount} words provided`
     }
     return ''
   },

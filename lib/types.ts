@@ -11,6 +11,7 @@ export interface ResearchArticle {
   openAccess: boolean
   source: 'openAlex' | 'crossref' | 'combined'
   abstract?: string
+  relevanceReasons?: string[]
 }
 
 export interface SearchParams {
@@ -32,6 +33,7 @@ export interface SearchResponse {
   page: number
   perPage: number
   hasMore: boolean
+  warnings?: string[]
 }
 
 export interface ExportFormat {
