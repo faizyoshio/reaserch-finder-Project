@@ -25,7 +25,7 @@ function HomeContent() {
   const [params, setParams] = useState<SearchParams>({
     q: searchParams.get('q') || '',
     page: parseInt(searchParams.get('page') || '1'),
-    perPage: 50,
+    perPage: 25,
     yearFrom: searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!) : undefined,
     yearTo: searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined,
     oaOnly: searchParams.get('oaOnly') === 'true',
@@ -39,6 +39,7 @@ function HomeContent() {
   const [loading, setLoading] = useState(false)
   const [showIntro, setShowIntro] = useState(true)
   const [hasSearched, setHasSearched] = useState(!!params.q)
+  const [hasMore, setHasMore] = useState(false)
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
 
   // Load saved articles from localStorage
@@ -87,6 +88,7 @@ function HomeContent() {
         const data: SearchResponse = await response.json()
         setResults(data.articles)
         setTotal(data.total)
+        setHasMore(Boolean(data.hasMore))
 
         // Update URL
         router.push(`/?${queryString}`)
@@ -223,7 +225,7 @@ function HomeContent() {
           <div>
             {/* Results Info */}
             <div className="mb-4 text-sm text-foreground/60">
-              Showing {results.length} of {total} results
+              Showing {((params.page - 1) * params.perPage) + 1} - {((params.page - 1) * params.perPage) + results.length} of {total} results
             </div>
 
             {/* Results List */}
@@ -240,7 +242,7 @@ function HomeContent() {
             </div>
 
             {/* Pagination */}
-            {total > params.perPage && (
+            {(hasMore || params.page > 1) && (
               <div className="flex justify-center gap-2 mt-8">
                 <Button
                   onClick={() => {
@@ -268,7 +270,7 @@ function HomeContent() {
                     performSearch(params.q, newParams)
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
-                  disabled={!total || params.page * params.perPage >= total}
+                  disabled={!hasMore}
                   className="glass-button"
                 >
                   Next
