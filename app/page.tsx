@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
 import { TopBar } from '@/components/top-bar'
 import { Footer } from '@/components/footer'
 import { SearchInput } from '@/components/search-input'
@@ -16,6 +16,9 @@ import { FilterToggleButton, FilterPanel } from '@/components/search-filters'
 import type { ResearchArticle, SearchParams, SearchResponse, SavedArticle } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { validation } from '@/lib/utils'
+
+type QuickPreset = 'oa' | 'recent5' | 'cited' | 'journal'
+const LAST_PRESET_KEY = 'researchfinder-last-quick-preset'
 
 function HomeContent() {
   const router = useRouter()
@@ -47,9 +50,40 @@ function HomeContent() {
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
 
   const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [lastQuickPreset, setLastQuickPreset] = useState<QuickPreset | null>(() => {
+    if (typeof window === 'undefined') return null
+    const saved = localStorage.getItem(LAST_PRESET_KEY)
+    if (saved === 'oa' || saved === 'recent5' || saved === 'cited' || saved === 'journal') {
+      return saved
+    }
+    return null
+  })
 
   const [filtersVisible, setFiltersVisible] = useState(false)
   const toggleFilters = () => setFiltersVisible((v) => !v)
+  const currentYear = new Date().getFullYear()
+  const isOpenAccessPresetActive = params.oaOnly
+  const isRecentPresetActive =
+    params.yearFrom === currentYear - 5 &&
+    params.yearTo === currentYear &&
+    params.sort === 'year' &&
+    params.sortDir === 'desc'
+  const isCitedPresetActive = params.sort === 'citedBy' && params.sortDir === 'desc'
+  const isJournalPresetActive = params.documentType === 'journal'
+
+  const isPresetActive = (preset: QuickPreset) => {
+    if (preset === 'oa') return isOpenAccessPresetActive
+    if (preset === 'recent5') return isRecentPresetActive
+    if (preset === 'cited') return isCitedPresetActive
+    return isJournalPresetActive
+  }
+
+  const getPresetLabel = (preset: QuickPreset) => {
+    if (preset === 'oa') return 'Open Access'
+    if (preset === 'recent5') return 'Last 5 Years'
+    if (preset === 'cited') return 'Most Cited'
+    return 'Journal Only'
+  }
 
   // Load saved articles from localStorage
   useEffect(() => {
@@ -218,6 +252,32 @@ function HomeContent() {
     clearSelection()
   }
 
+  const applyQuickPreset = (preset: QuickPreset) => {
+    let newParams: SearchParams
+
+    if (preset === 'oa') {
+      newParams = { ...params, oaOnly: true, page: 1 }
+    } else if (preset === 'recent5') {
+      newParams = {
+        ...params,
+        yearFrom: currentYear - 5,
+        yearTo: currentYear,
+        sort: 'year',
+        sortDir: 'desc',
+        page: 1,
+      }
+    } else if (preset === 'cited') {
+      newParams = { ...params, sort: 'citedBy', sortDir: 'desc', page: 1 }
+    } else {
+      newParams = { ...params, documentType: 'journal', page: 1 }
+    }
+
+    setParams(newParams)
+    setLastQuickPreset(preset)
+    localStorage.setItem(LAST_PRESET_KEY, preset)
+    if (params.q) performSearch(params.q, newParams)
+  }
+
   // Keyboard shortcuts: '/' focus search, 'n' next, 'p' prev
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -280,6 +340,86 @@ function HomeContent() {
         {/* External Search Links */}
         {hasSearched && <ExternalSearchLinks query={params.q} />}
 
+        {/* Quick Filters */}
+        {hasSearched && (
+          <div className="glass rounded-2xl p-3 sm:p-4 mb-4">
+            <div className="text-xs sm:text-sm text-foreground/60 mb-2">Quick refine</div>
+            <div className="flex flex-wrap gap-2">
+              {!isOpenAccessPresetActive && (
+                <button
+                  onClick={() => applyQuickPreset('oa')}
+                  className="glass-badge text-sm px-3 py-1.5 transition-all hover:ring-2 hover:ring-foreground/20"
+                >
+                  Open Access
+                </button>
+              )}
+
+              {!isRecentPresetActive && (
+                <button
+                  onClick={() => applyQuickPreset('recent5')}
+                  className="glass-badge text-sm px-3 py-1.5 transition-all hover:ring-2 hover:ring-foreground/20"
+                >
+                  Last 5 Years
+                </button>
+              )}
+
+              {!isCitedPresetActive && (
+                <button
+                  onClick={() => applyQuickPreset('cited')}
+                  className="glass-badge text-sm px-3 py-1.5 transition-all hover:ring-2 hover:ring-foreground/20"
+                >
+                  Most Cited
+                </button>
+              )}
+
+              {!isJournalPresetActive && (
+                <button
+                  onClick={() => applyQuickPreset('journal')}
+                  className="glass-badge text-sm px-3 py-1.5 transition-all hover:ring-2 hover:ring-foreground/20"
+                >
+                  Journal Only
+                </button>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {isOpenAccessPresetActive && (
+                <span className="glass-badge text-xs px-2.5 py-1 inline-flex items-center gap-1 ring-1 ring-green-500/60">
+                  <Check className="w-3.5 h-3.5" />
+                  Open Access active
+                </span>
+              )}
+              {isRecentPresetActive && (
+                <span className="glass-badge text-xs px-2.5 py-1 inline-flex items-center gap-1 ring-1 ring-blue-500/60">
+                  <Check className="w-3.5 h-3.5" />
+                  Last 5 Years active
+                </span>
+              )}
+              {isCitedPresetActive && (
+                <span className="glass-badge text-xs px-2.5 py-1 inline-flex items-center gap-1 ring-1 ring-orange-500/60">
+                  <Check className="w-3.5 h-3.5" />
+                  Most Cited active
+                </span>
+              )}
+              {isJournalPresetActive && (
+                <span className="glass-badge text-xs px-2.5 py-1 inline-flex items-center gap-1 ring-1 ring-purple-500/60">
+                  <Check className="w-3.5 h-3.5" />
+                  Journal Only active
+                </span>
+              )}
+
+              {lastQuickPreset && !isPresetActive(lastQuickPreset) && (
+                <button
+                  onClick={() => applyQuickPreset(lastQuickPreset)}
+                  className="glass-badge text-xs px-2.5 py-1 transition-all hover:ring-2 hover:ring-foreground/20"
+                >
+                  Reapply last preset: {getPresetLabel(lastQuickPreset)}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Intro Section */}
         {showIntro && (
           <div className="glass rounded-2xl p-6 sm:p-8 mb-8 text-center animate-glass-in">
@@ -315,41 +455,66 @@ function HomeContent() {
             <p className="text-sm text-foreground/70 mb-3">Try different keywords, broaden the query, or clear filters.</p>
 
             <div className="flex flex-col sm:flex-row gap-2 mb-4">
-              <Button
-                onClick={() => {
-                  const newParams = { ...params, yearFrom: undefined, yearTo: undefined, documentType: undefined, oaOnly: false, page: 1 }
-                  setParams(newParams)
-                  if (params.q) performSearch(params.q, newParams)
-                }}
-                className="glass-button"
-              >
-                Clear Filters
-              </Button>
+              {(params.yearFrom || params.yearTo) && (
+                <Button
+                  onClick={() => {
+                    const newParams: SearchParams = { ...params, yearFrom: undefined, yearTo: undefined, page: 1 }
+                    setParams(newParams)
+                    if (params.q) performSearch(params.q, newParams)
+                  }}
+                  className="glass-button"
+                >
+                  Remove Year Filter
+                </Button>
+              )}
+
+              {params.oaOnly && (
+                <Button
+                  onClick={() => {
+                    const newParams: SearchParams = { ...params, oaOnly: false, page: 1 }
+                    setParams(newParams)
+                    if (params.q) performSearch(params.q, newParams)
+                  }}
+                  className="glass-button"
+                >
+                  Disable OA-only
+                </Button>
+              )}
 
               <Button
                 onClick={() => {
-                  // try a broader search by using first two words
+                  // Broaden search by reducing phrase specificity.
                   const parts = (params.q || '').trim().split(/\s+/).filter(Boolean)
                   const newQuery = parts.length > 2 ? parts.slice(0, 2).join(' ') : params.q
-                  const newParams = { ...params, q: newQuery, page: 1 }
+                  const newParams: SearchParams = { ...params, q: newQuery, page: 1 }
                   setQuery(newQuery)
                   setParams(newParams)
                   performSearch(newQuery, newParams)
                 }}
                 className="glass-button"
               >
-                Broaden Search
+                Try Broader Keywords
               </Button>
 
               <Button
                 onClick={() => {
-                  const newParams = { ...params, page: 1 }
+                  const newParams: SearchParams = {
+                    ...params,
+                    yearFrom: undefined,
+                    yearTo: undefined,
+                    documentType: undefined,
+                    language: undefined,
+                    oaOnly: false,
+                    sort: 'relevance',
+                    sortDir: 'desc',
+                    page: 1,
+                  }
                   setParams(newParams)
                   if (params.q) performSearch(params.q, newParams)
                 }}
                 className="glass-button"
               >
-                Retry
+                Reset All Filters
               </Button>
             </div>
 
