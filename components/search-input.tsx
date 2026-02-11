@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Search, X, ExternalLink } from 'lucide-react'
+import { Search, X, ExternalLink, AlertCircle } from 'lucide-react'
 import type { AutocompleteResult } from '@/lib/types'
+import { validation } from '@/lib/utils'
 
 interface SearchInputProps {
   value: string
@@ -62,6 +63,7 @@ export function SearchInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions || suggestions.length === 0) {
       if (e.key === 'Enter') {
+        e.preventDefault()
         onSearch()
       }
       return
@@ -155,6 +157,14 @@ export function SearchInput({
           </button>
         )}
       </div>
+
+      {/* Validation Message */}
+      {value && !validation.isValidSearchQuery(value) && (
+        <div className="mt-2 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{validation.getValidationMessage(value)}</span>
+        </div>
+      )}
 
       {/* Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (

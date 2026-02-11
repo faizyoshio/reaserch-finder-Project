@@ -20,6 +20,8 @@ export interface SearchParams {
   yearTo?: number
   oaOnly: boolean
   sort: 'relevance' | 'year' | 'citedBy'
+  documentType?: string
+  language?: string
 }
 
 export interface SearchResponse {

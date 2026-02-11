@@ -13,6 +13,7 @@ import { ExternalSearchLinks } from '@/components/external-search-links'
 import { Button } from '@/components/ui/button'
 import type { ResearchArticle, SearchParams, SearchResponse, AutocompleteResult, SavedArticle } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
+import { validation } from '@/lib/utils'
 
 function HomeContent() {
   const router = useRouter()
@@ -24,11 +25,13 @@ function HomeContent() {
   const [params, setParams] = useState<SearchParams>({
     q: searchParams.get('q') || '',
     page: parseInt(searchParams.get('page') || '1'),
-    perPage: 25,
+    perPage: 100,
     yearFrom: searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!) : undefined,
     yearTo: searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined,
     oaOnly: searchParams.get('oaOnly') === 'true',
     sort: (searchParams.get('sort') as 'relevance' | 'year' | 'citedBy') || 'relevance',
+    documentType: searchParams.get('documentType') || undefined,
+    language: searchParams.get('language') || undefined,
   })
 
   const [results, setResults] = useState<ResearchArticle[]>([])
@@ -53,10 +56,10 @@ function HomeContent() {
   // Perform search
   const performSearch = React.useCallback(
     async (searchQuery: string, searchParams: SearchParams) => {
-      if (!searchQuery.trim() || searchQuery.length < 2) {
+      if (!validation.isValidSearchQuery(searchQuery)) {
         toast({
           title: 'Peringatan / Warning',
-          description: 'Masukkan minimal 2 karakter / Enter at least 2 characters',
+          description: validation.getValidationMessage(searchQuery),
           variant: 'destructive',
         })
         return
@@ -74,6 +77,8 @@ function HomeContent() {
           sort: searchParams.sort,
           ...(searchParams.yearFrom && { yearFrom: searchParams.yearFrom.toString() }),
           ...(searchParams.yearTo && { yearTo: searchParams.yearTo.toString() }),
+          ...(searchParams.documentType && { documentType: searchParams.documentType }),
+          ...(searchParams.language && { language: searchParams.language }),
         })
 
         const response = await fetch(`/api/search?${queryString}`)

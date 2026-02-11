@@ -28,3 +28,33 @@ export const breakpoints = {
   xl: '1280px',
   '2xl': '1536px',
 } as const
+
+// Validation utilities
+export const validation = {
+  // Minimum 3 words validation
+  isValidSearchQuery: (query: string): boolean => {
+    if (!query.trim()) return false
+    const words = query.trim().split(/\s+/).filter(word => word.length > 0)
+    return words.length >= 3
+  },
+  
+  // Get word count
+  getWordCount: (query: string): number => {
+    return query.trim().split(/\s+/).filter(word => word.length > 0).length
+  },
+  
+  // Get validation message
+  getValidationMessage: (query: string): string => {
+    const wordCount = validation.getWordCount(query)
+    if (wordCount === 0) {
+      return 'Masukkan kata kunci / Enter keywords'
+    }
+    if (wordCount === 1) {
+      return `Diperlukan minimal 3 kata. Hanya ${wordCount} kata sekarang / Need at least 3 words. Only ${wordCount} word now`
+    }
+    if (wordCount < 3) {
+      return `Diperlukan minimal 3 kata. Hanya ${wordCount} kata sekarang / Need at least 3 words. Only ${wordCount} words now`
+    }
+    return ''
+  },
+}

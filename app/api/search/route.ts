@@ -29,12 +29,23 @@ interface CrossrefArticle {
   link?: Array<{ URL: string; 'content-type': string }>
 }
 
-async function fetchOpenAlex(query: string, page: number, perPage: number, yearFrom?: number, yearTo?: number, oaOnly?: boolean): Promise<{ articles: ResearchArticle[]; total: number }> {
+async function fetchOpenAlex(query: string, page: number, perPage: number, yearFrom?: number, yearTo?: number, oaOnly?: boolean, documentType?: string): Promise<{ articles: ResearchArticle[]; total: number }> {
   try {
     const filterParts: string[] = []
     if (yearFrom) filterParts.push(`publication_year:>=${yearFrom}`)
     if (yearTo) filterParts.push(`publication_year:<=${yearTo}`)
     if (oaOnly) filterParts.push('open_access.is_oa:true')
+    if (documentType) {
+      // Map document types to OpenAlex type filter
+      const typeMap: { [key: string]: string } = {
+        journal: 'journal-article',
+        conference: 'proceedings-article',
+        preprint: 'preprint',
+        book: 'book',
+      }
+      const openAlexType = typeMap[documentType]
+      if (openAlexType) filterParts.push(`type:${openAlexType}`)
+    }
 
     const filter = filterParts.length > 0 ? `&filter=${filterParts.join(',')}` : ''
 
@@ -140,17 +151,27 @@ export async function GET(request: NextRequest) {
     const yearTo = searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!) : undefined
     const oaOnly = searchParams.get('oaOnly') === 'true'
     const sort = (searchParams.get('sort') || 'relevance') as 'relevance' | 'year' | 'citedBy'
+    const documentType = searchParams.get('documentType') || undefined
+    const language = searchParams.get('language') || undefined
 
-    // Validate input
-    if (!q || q.length < 2) {
+    // Validate input - minimum 3 words
+    if (!q) {
       return NextResponse.json(
-        { error: 'Query must be at least 2 characters long' },
+        { error: 'Query is required' },
+        { status: 400 }
+      )
+    }
+
+    const wordCount = q.trim().split(/\s+/).filter(word => word.length > 0).length
+    if (wordCount < 3) {
+      return NextResponse.json(
+        { error: `Minimal 3 kata diperlukan / Minimum 3 words required. Hanya ${wordCount} kata / Only ${wordCount} word${wordCount === 1 ? '' : 's'} provided` },
         { status: 400 }
       )
     }
 
     // Check cache
-    const cacheKey = `${q}:${page}:${perPage}:${yearFrom}:${yearTo}:${oaOnly}:${sort}`
+    const cacheKey = `${q}:${page}:${perPage}:${yearFrom}:${yearTo}:${oaOnly}:${sort}:${documentType}:${language}`
     const cached = searchCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data)
@@ -158,7 +179,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch from both sources in parallel
     const [openAlexResult, crossrefResult] = await Promise.all([
-      fetchOpenAlex(q, page, perPage, yearFrom, yearTo, oaOnly),
+      fetchOpenAlex(q, page, perPage, yearFrom, yearTo, oaOnly, documentType),
       fetchCrossref(q, page, perPage, yearFrom, yearTo),
     ])
 
@@ -168,6 +189,12 @@ export async function GET(request: NextRequest) {
     // Filter OA if requested
     if (oaOnly) {
       combined = combined.filter((a) => a.openAccess)
+    }
+
+    // Filter by language if requested (basic client-side filtering based on available metadata)
+    if (language) {
+      // Since APIs don't provide language info directly, we pass it through for future enhancement
+      // In a production system, you'd use a language detection service
     }
 
     // Deduplicate

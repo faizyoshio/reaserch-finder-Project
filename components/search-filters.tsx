@@ -15,6 +15,23 @@ const sortOptions = [
   { value: 'citedBy', label: 'Paling Dikutip / Most Cited' },
 ]
 
+const documentTypeOptions = [
+  { value: 'journal', label: 'Jurnal / Journal' },
+  { value: 'conference', label: 'Konferensi / Conference' },
+  { value: 'preprint', label: 'Preprint' },
+  { value: 'book', label: 'Buku / Book' },
+]
+
+const languageOptions = [
+  { value: 'en', label: 'English' },
+  { value: 'id', label: 'Indonesia' },
+  { value: 'zh', label: '中文 / Chinese' },
+  { value: 'ja', label: '日本語 / Japanese' },
+  { value: 'es', label: 'Español / Spanish' },
+  { value: 'fr', label: 'Français / French' },
+  { value: 'de', label: 'Deutsch / German' },
+]
+
 export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
   const currentYear = new Date().getFullYear()
   const yearOptions = Array.from({ length: 30 }, (_, i) => currentYear - i)
@@ -37,6 +54,60 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
               {params.oaOnly ? 'Ya / Yes' : 'Semua / All'}
             </span>
           </button>
+        </div>
+
+        {/* Document Type Filter */}
+        <div>
+          <label className="text-sm font-medium text-foreground block mb-2">
+            Tipe Dokumen / Document Type
+          </label>
+          <div className="relative">
+            <select
+              value={params.documentType || ''}
+              onChange={(e) =>
+                onParamsChange({
+                  documentType: e.target.value || undefined,
+                  page: 1,
+                })
+              }
+              className="glass-input w-full text-sm appearance-none pr-8"
+            >
+              <option value="">Semua / All Types</option>
+              {documentTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Language Filter */}
+        <div>
+          <label className="text-sm font-medium text-foreground block mb-2">
+            Bahasa / Language
+          </label>
+          <div className="relative">
+            <select
+              value={params.language || ''}
+              onChange={(e) =>
+                onParamsChange({
+                  language: e.target.value || undefined,
+                  page: 1,
+                })
+              }
+              className="glass-input w-full text-sm appearance-none pr-8"
+            >
+              <option value="">Semua / All Languages</option>
+              {languageOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+          </div>
         </div>
 
         {/* Year Filter */}
@@ -117,13 +188,15 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
         </div>
 
         {/* Reset Filters */}
-        {(params.yearFrom || params.yearTo || params.oaOnly || params.sort !== 'relevance') && (
+        {(params.yearFrom || params.yearTo || params.oaOnly || params.documentType || params.language || params.sort !== 'relevance') && (
           <button
             onClick={() =>
               onParamsChange({
                 yearFrom: undefined,
                 yearTo: undefined,
                 oaOnly: false,
+                documentType: undefined,
+                language: undefined,
                 sort: 'relevance',
                 page: 1,
               })
