@@ -311,7 +311,7 @@ function HomeContent() {
 
         {!loading && hasSearched && results.length === 0 && (
           <div className="glass rounded-2xl p-6 sm:p-8 mb-6">
-            <h3 className="text-lg font-bold mb-2">No results for "{params.q}"</h3>
+            <h3 className="text-lg font-bold mb-2">No results for &quot;{params.q}&quot;</h3>
             <p className="text-sm text-foreground/70 mb-3">Try different keywords, broaden the query, or clear filters.</p>
 
             <div className="flex flex-col sm:flex-row gap-2 mb-4">
@@ -422,8 +422,8 @@ function HomeContent() {
                     aria-label="Toggle sort direction"
                     title={params.sortDir === 'asc' ? 'Ascending' : 'Descending'}
                     onClick={() => {
-                      const newDir = params.sortDir === 'asc' ? 'desc' : 'asc'
-                      const newParams = { ...params, sortDir: newDir, page: 1 }
+                      const newDir: NonNullable<SearchParams['sortDir']> = params.sortDir === 'asc' ? 'desc' : 'asc'
+                      const newParams: SearchParams = { ...params, sortDir: newDir, page: 1 }
                       setParams(newParams)
                       if (params.q) performSearch(params.q, newParams)
                     }}

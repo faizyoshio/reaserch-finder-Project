@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState } from 'react'
 import { Search, X, AlertCircle } from 'lucide-react'
 import { validation } from '@/lib/utils'
 
@@ -12,19 +12,19 @@ interface SearchInputProps {
 
 export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return []
 
-  useEffect(() => {
     const recent = localStorage.getItem('researchfinder-recent')
-    if (recent) {
-      try {
-        setSuggestions(JSON.parse(recent))
-      } catch {
-        setSuggestions([])
-      }
+    if (!recent) return []
+
+    try {
+      return JSON.parse(recent) as string[]
+    } catch {
+      return []
     }
-  }, [])
+  })
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

@@ -1,41 +1,39 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Bookmark, BookMarked as BookmarkOpen } from 'lucide-react'
+import React, { useState, useSyncExternalStore } from 'react'
+import { Bookmark } from 'lucide-react'
 import { TopBar } from '@/components/top-bar'
 import { Footer } from '@/components/footer'
 import { ResultCard } from '@/components/result-card'
-import { FilterToggleButton, FilterPanel } from '@/components/search-filters'
 import type { SavedArticle } from '@/lib/types'
 
-export default function SavedPage() {
-  const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
-  const [mounted, setMounted] = useState(false)
-  const [filtersVisible, setFiltersVisible] = useState(false)
+function loadSavedArticles(): SavedArticle[] {
+  if (typeof window === 'undefined') return []
 
-  // Load saved articles from localStorage
-  useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem('researchfinder-saved')
-    if (saved) {
-      try {
-        const articles = JSON.parse(saved) as SavedArticle[]
-        // Sort by saved date, newest first
-        setSavedArticles(articles.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()))
-      } catch {
-        console.error('[ResearchFinder] Failed to load saved articles')
-      }
-    }
-  }, [])
+  const saved = localStorage.getItem('researchfinder-saved')
+  if (!saved) return []
+
+  try {
+    const articles = JSON.parse(saved) as SavedArticle[]
+    return articles.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())
+  } catch {
+    console.error('[ResearchFinder] Failed to load saved articles')
+    return []
+  }
+}
+
+export default function SavedPage() {
+  const [savedArticles, setSavedArticles] = useState<SavedArticle[]>(() => loadSavedArticles())
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   const handleUnsave = (articleId: string) => {
     const updated = savedArticles.filter((a) => a.id !== articleId)
     setSavedArticles(updated)
     localStorage.setItem('researchfinder-saved', JSON.stringify(updated))
-  }
-
-  const toggleFilters = () => {
-    setFiltersVisible((prev) => !prev)
   }
 
   if (!mounted) {
