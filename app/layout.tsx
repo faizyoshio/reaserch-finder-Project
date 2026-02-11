@@ -1,7 +1,7 @@
 import React from "react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
@@ -9,7 +9,6 @@ import Script from 'next/script'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'] })
-const geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'ResearchFinder - Academic Literature Discovery',

@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ExternalLink, Copy, Bookmark, BookmarkCheck, Download, AlertCircle, CheckCircle } from 'lucide-react'
-import { BookMarked as BookmarkFilled } from 'lucide-react' // Import BookmarkFilled
+import { ExternalLink, Copy, Bookmark, BookmarkCheck, Download } from 'lucide-react'
 import type { ResearchArticle } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 
@@ -62,7 +61,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave, selecta
         title: 'Saved',
         description: `${format.toUpperCase()} exported successfully`,
       })
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: `Failed to export ${format}`,

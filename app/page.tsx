@@ -45,7 +45,7 @@ function HomeContent() {
   const [loading, setLoading] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showIntro, setShowIntro] = useState(true)
-  const [hasSearched, setHasSearched] = useState(!!params.q)
+  const [hasSearched, setHasSearched] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
 
@@ -170,7 +170,7 @@ function HomeContent() {
       performSearch(params.q, params)
       setHasSearched(true)
     }
-  }, [])
+  }, [hasSearched, params, performSearch])
 
   const handleSearch = () => {
     const newParams: SearchParams = {
@@ -192,7 +192,6 @@ function HomeContent() {
   }
 
   const handleSaveArticle = (article: ResearchArticle) => {
-    const key = article.doi || `${article.source}-${article.id}`
     const existingSaved = savedArticles.find(
       (s) => s.doi === article.doi || (s.source === article.source && s.id === article.id)
     )
