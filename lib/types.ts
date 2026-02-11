@@ -32,12 +32,6 @@ export interface SearchResponse {
   hasMore: boolean
 }
 
-export interface AutocompleteResult {
-  title: string
-  id?: string
-  doi?: string
-  year?: number
-}
 export interface ExportFormat {
   format: 'bibtex' | 'ris'
   content: string

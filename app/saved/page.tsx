@@ -5,11 +5,13 @@ import { Bookmark, BookMarked as BookmarkOpen } from 'lucide-react'
 import { TopBar } from '@/components/top-bar'
 import { Footer } from '@/components/footer'
 import { ResultCard } from '@/components/result-card'
+import { FilterToggleButton, FilterPanel } from '@/components/search-filters'
 import type { SavedArticle } from '@/lib/types'
 
 export default function SavedPage() {
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
   const [mounted, setMounted] = useState(false)
+  const [filtersVisible, setFiltersVisible] = useState(false)
 
   // Load saved articles from localStorage
   useEffect(() => {
@@ -30,6 +32,10 @@ export default function SavedPage() {
     const updated = savedArticles.filter((a) => a.id !== articleId)
     setSavedArticles(updated)
     localStorage.setItem('researchfinder-saved', JSON.stringify(updated))
+  }
+
+  const toggleFilters = () => {
+    setFiltersVisible((prev) => !prev)
   }
 
   if (!mounted) {
@@ -79,7 +85,7 @@ export default function SavedPage() {
 
         {/* Saved Articles List */}
         {savedArticles.length > 0 && (
-          <div className="space-y-4">
+          <div className="result-list">
             {savedArticles.map((article) => (
               <ResultCard
                 key={article.id}

@@ -37,6 +37,58 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+@layer base {
+  /* Typography scale tuned for clarity and rhythm (8px baseline) */
+  h1 {
+    font-size: clamp(1.6rem, 2.6vw, 2.25rem);
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 calc(var(--space) * 1);
+  }
+
+  h2 {
+    font-size: clamp(1.25rem, 2.1vw, 1.5rem);
+    line-height: 1.1;
+    font-weight: 600;
+    margin: 0 0 calc(var(--space) * 0.75);
+  }
+
+  h3 {
+    font-size: 1rem;
+    line-height: 1.2;
+    font-weight: 600;
+    margin: 0 0 calc(var(--space) * 0.6);
+  }
+
+  p, li, label {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--foreground);
+    margin: 0 0 0.5rem 0;
+  }
+
+  /* Utility text-balance for tighter title wrapping */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Result list should use roomy vertical rhythm */
+  .result-list {
+    display: block;
+  }
+
+  /* Ensure large page containers follow 8px rhythm */
+  main, .glass, .glass-strong {
+    padding: calc(var(--space) * 1.5);
+  }
+
+  /* Slightly larger padding for cards on larger screens */
+  @media (min-width: 640px) {
+    .glass { padding: calc(var(--space) * 2); }
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -70,6 +122,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+}
+
 /* Removed custom at-rules (@theme, @custom-variant) and Tailwind @apply usage
    to avoid build/linter errors in environments without the Tailwind plugins.
    The following plain CSS provides equivalent base styles using CSS variables. */
@@ -84,5 +138,119 @@
     background: var(--background);
     color: var(--foreground);
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+  }
+}
+
+/* iOS 26 inspired design tokens and component styles */
+:root {
+  --ios-bg: #f7f7f8;
+  --ios-card: #ffffff;
+  --ios-accent: #0a84ff;
+  --ios-accent-foreground: #ffffff;
+  --space: 8px;
+  --radius: 1rem;
+  --shadow-soft: 0 6px 18px rgba(16,24,40,0.06);
+  --shadow-subtle: 0 2px 6px rgba(16,24,40,0.04);
+  --glass-border: rgba(16,24,40,0.06);
+}
+
+@layer base {
+  /* Core adjustments for iOS-like feel */
+  body {
+    background: var(--ios-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: system-ui, -apple-system, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    line-height: 1.45;
+  }
+
+  .glass-strong {
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px) saturate(1.03);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-subtle);
+    border-radius: calc(var(--radius) + 0.5rem);
+  }
+
+  .glass {
+    background: var(--ios-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    color: var(--card-foreground);
+  }
+
+  .glass-hover {
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .glass-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(16,24,40,0.08);
+  }
+
+  .glass-button {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: inherit;
+    border-radius: 999px;
+    padding: calc(var(--space) / 1.2) calc(var(--space) * 1.25);
+    transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .glass-button:focus {
+    box-shadow: 0 0 0 4px rgba(10,132,255,0.12);
+    outline: none;
+  }
+  .glass-button:hover {
+    background: rgba(10,132,255,0.04);
+  }
+
+  .glass-input {
+    background: var(--ios-card);
+    border-radius: 999px;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-subtle);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: box-shadow 200ms ease, border-color 200ms ease;
+  }
+  .glass-input:focus-within {
+    box-shadow: 0 6px 20px rgba(10,132,255,0.08);
+    border-color: var(--ios-accent);
+  }
+
+  .glass-badge {
+    background: rgba(0,0,0,0.03);
+    border: 1px solid transparent;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+  }
+
+  .filter-panel {
+    overflow: hidden;
+    transition: max-height 280ms cubic-bezier(.2,.9,.2,1), opacity 220ms ease;
+  }
+
+  .result-list > * + * {
+    margin-top: calc(var(--space) * 1.5);
+  }
+
+  @media (max-width: 640px) {
+    .search-toggle-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .search-toggle-stack .glass-input {
+      width: 100%;
+    }
+    .search-toggle-stack .glass-button {
+      align-self: flex-end;
+    }
   }
 }

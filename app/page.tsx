@@ -11,7 +11,8 @@ import { ResultCard } from '@/components/result-card'
 import { ResultSkeleton } from '@/components/result-skeleton'
 import { ExternalSearchLinks } from '@/components/external-search-links'
 import { Button } from '@/components/ui/button'
-import type { ResearchArticle, SearchParams, SearchResponse, AutocompleteResult, SavedArticle } from '@/lib/types'
+import { FilterToggleButton, FilterPanel } from '@/components/search-filters'
+import type { ResearchArticle, SearchParams, SearchResponse, SavedArticle } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { validation } from '@/lib/utils'
 
@@ -41,6 +42,9 @@ function HomeContent() {
   const [hasSearched, setHasSearched] = useState(!!params.q)
   const [hasMore, setHasMore] = useState(false)
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
+
+  const [filtersVisible, setFiltersVisible] = useState(false)
+  const toggleFilters = () => setFiltersVisible((v) => !v)
 
   // Load saved articles from localStorage
   useEffect(() => {
@@ -161,25 +165,36 @@ function HomeContent() {
   const isSaved = (article: ResearchArticle) =>
     savedArticles.some((s) => s.doi === article.doi || (s.source === article.source && s.id === article.id))
 
+
   return (
     <div className="min-h-screen flex flex-col">
       <TopBar />
 
       <main className="flex-1 px-2 sm:px-4 py-4 sm:py-6 max-w-5xl mx-auto w-full">
-        {/* Search Panel */}
-        <div className="glass rounded-2xl p-4 sm:p-6 mb-6 animate-glass-in">
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            onSearch={handleSearch}
-          />
+        {/* Search & Filter Toggle */}
+        <div className="flex items-center gap-2 mb-4 search-toggle-stack">
+          <div className="flex-1">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              onSearch={handleSearch}
+            />
+          </div>
+          <div className="ml-2">
+            <FilterToggleButton
+              isVisible={filtersVisible}
+              onClick={toggleFilters}
+            />
+          </div>
         </div>
+
+        {/* Filter Panel with animation */}
+        <FilterPanel isVisible={filtersVisible}>
+          <SearchFilters params={params} onParamsChange={handleParamsChange} />
+        </FilterPanel>
 
         {/* External Search Links */}
         {hasSearched && <ExternalSearchLinks query={params.q} />}
-
-        {/* Filters */}
-        {hasSearched && <SearchFilters params={params} onParamsChange={handleParamsChange} />}
 
         {/* Intro Section */}
         {showIntro && (
@@ -229,7 +244,7 @@ function HomeContent() {
             </div>
 
             {/* Results List */}
-            <div className="space-y-4">
+            <div className="result-list">
               {results.map((article) => (
                 <ResultCard
                   key={article.doi || `${article.source}-${article.id}`}

@@ -215,3 +215,24 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
     </div>
   )
 }
+
+export function FilterToggleButton({ isVisible, onClick }: { isVisible: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="glass-button px-4 py-2 text-sm font-medium transition-all hover:ring-2 hover:ring-foreground/20"
+    >
+      {isVisible ? 'Hide Filters' : 'Show Filters'}
+    </button>
+  )
+}
+
+export function FilterPanel({ isVisible, children }: { isVisible: boolean; children?: React.ReactNode }) {
+  return (
+    <div
+      className={`filter-panel ${isVisible ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}
+    >
+      {children}
+    </div>
+  )
+}
