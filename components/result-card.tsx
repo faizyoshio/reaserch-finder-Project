@@ -33,7 +33,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
       setLinkCheckStatus(result)
     } catch (error) {
       toast({
-        title: 'Error / Kesalahan',
+        title: 'Error',
         description: 'Failed to check link',
         variant: 'destructive',
       })
@@ -45,7 +45,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
   const handleExport = async (format: 'bibtex' | 'ris') => {
     if (!article.doi) {
       toast({
-        title: 'Error / Kesalahan',
+        title: 'Error',
         description: 'No DOI available for export',
         variant: 'destructive',
       })
@@ -81,12 +81,12 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
       document.body.removeChild(a)
 
       toast({
-        title: 'Tersimpan / Saved',
+        title: 'Saved',
         description: `${format.toUpperCase()} exported successfully`,
       })
     } catch (error) {
       toast({
-        title: 'Error / Kesalahan',
+        title: 'Error',
         description: `Failed to export ${format}`,
         variant: 'destructive',
       })
@@ -100,12 +100,12 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
     try {
       await navigator.clipboard.writeText(`https://doi.org/${article.doi}`)
       toast({
-        title: 'Tersalin / Copied',
+        title: 'Copied',
         description: 'DOI link copied to clipboard',
       })
     } catch {
       toast({
-        title: 'Error / Kesalahan',
+        title: 'Error',
         description: 'Failed to copy DOI',
         variant: 'destructive',
       })
@@ -116,13 +116,13 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
     if (isSaved) {
       onUnsave?.(article.id)
       toast({
-        title: 'Dihapus / Removed',
+        title: 'Removed',
         description: 'Article removed from saved',
       })
     } else {
       onSave?.(article)
       toast({
-        title: 'Tersimpan / Saved',
+        title: 'Saved',
         description: 'Article saved successfully',
       })
     }
@@ -189,7 +189,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
             className="glass-button inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Buka / Open</span>
+            <span className="hidden sm:inline">Open</span>
             <span className="sm:hidden">Open</span>
           </a>
         )}
@@ -218,7 +218,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
           ) : (
             <Bookmark className="w-3.5 h-3.5" />
           )}
-          <span className="hidden sm:inline">{isSaved ? 'Disimpan / Saved' : 'Simpan / Save'}</span>
+          <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
           <span className="sm:hidden">{isSaved ? 'Saved' : 'Save'}</span>
         </button>
 
@@ -257,7 +257,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
             ) : (
               <AlertCircle className="w-3.5 h-3.5" />
             )}
-            <span className="hidden sm:inline">Cek Link / Check Link</span>
+            <span className="hidden sm:inline">Check Link</span>
             <span className="sm:hidden">Check</span>
           </button>
         )}

@@ -47,13 +47,13 @@ export const validation = {
   getValidationMessage: (query: string): string => {
     const wordCount = validation.getWordCount(query)
     if (wordCount === 0) {
-      return 'Masukkan kata kunci / Enter keywords'
+      return 'Enter keywords'
     }
     if (wordCount === 1) {
-      return `Diperlukan minimal 3 kata. Hanya ${wordCount} kata sekarang / Need at least 3 words. Only ${wordCount} word now`
+      return `Minimum 3 words required. Only ${wordCount} word provided`
     }
     if (wordCount < 3) {
-      return `Diperlukan minimal 3 kata. Hanya ${wordCount} kata sekarang / Need at least 3 words. Only ${wordCount} words now`
+      return `Minimum 3 words required. Only ${wordCount} words provided`
     }
     return ''
   },

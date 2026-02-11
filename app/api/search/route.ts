@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
     const wordCount = q.trim().split(/\s+/).filter(word => word.length > 0).length
     if (wordCount < 3) {
       return NextResponse.json(
-        { error: `Minimal 3 kata diperlukan / Minimum 3 words required. Hanya ${wordCount} kata / Only ${wordCount} word${wordCount === 1 ? '' : 's'} provided` },
+        { error: `Minimum 3 words required. Only ${wordCount} word${wordCount === 1 ? '' : 's'} provided` },
         { status: 400 }
       )
     }

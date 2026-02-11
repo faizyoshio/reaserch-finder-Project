@@ -58,7 +58,7 @@ function HomeContent() {
     async (searchQuery: string, searchParams: SearchParams) => {
       if (!validation.isValidSearchQuery(searchQuery)) {
         toast({
-          title: 'Peringatan / Warning',
+          title: 'Warning',
           description: validation.getValidationMessage(searchQuery),
           variant: 'destructive',
         })
@@ -93,8 +93,8 @@ function HomeContent() {
       } catch (error) {
         console.error('[ResearchFinder] Search error:', error)
         toast({
-          title: 'Error / Kesalahan',
-          description: 'Pencarian gagal / Search failed',
+          title: 'Error',
+          description: 'Search failed',
           variant: 'destructive',
         })
         setResults([])
@@ -192,7 +192,7 @@ function HomeContent() {
               <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-balance">
-              Temukan Jurnal Anda / Find Your Research
+              Find Your Research
             </h2>
             <p className="text-sm sm:text-base text-foreground/70 leading-relaxed max-w-2xl mx-auto text-pretty">
               ResearchFinder is a dedicated scholarly platform designed to streamline the discovery of academic
@@ -200,7 +200,7 @@ function HomeContent() {
               and data, we empower researchers and students to build a solid foundation for their scientific inquiries.
             </p>
             <p className="text-xs sm:text-sm text-foreground/50 mt-4">
-              Akses jurnal Indonesia dan Internasional / Access Indonesian and International journals
+              Access global academic journals and research
             </p>
           </div>
         )}
@@ -217,10 +217,10 @@ function HomeContent() {
         {!loading && hasSearched && results.length === 0 && (
           <div className="glass rounded-2xl p-8 text-center">
             <p className="text-foreground/70 text-lg">
-              Tidak ada hasil / No results found
+              No results found
             </p>
             <p className="text-sm text-foreground/50 mt-2">
-              Coba dengan kata kunci berbeda / Try with different keywords
+              Try with different keywords
             </p>
           </div>
         )}
@@ -229,7 +229,7 @@ function HomeContent() {
           <div>
             {/* Results Info */}
             <div className="mb-4 text-sm text-foreground/60">
-              Menampilkan / Showing {results.length} dari {total} hasil / results
+              Showing {results.length} of {total} results
             </div>
 
             {/* Results List */}
@@ -258,12 +258,12 @@ function HomeContent() {
                   disabled={params.page === 1}
                   className="glass-button"
                 >
-                  Sebelumnya / Prev
+                  Previous
                 </Button>
 
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-foreground/70">
-                    Halaman / Page {params.page}
+                    Page {params.page}
                   </span>
                 </div>
 
@@ -277,7 +277,7 @@ function HomeContent() {
                   disabled={!total || params.page * params.perPage >= total}
                   className="glass-button"
                 >
-                  Selanjutnya / Next
+                  Next
                 </Button>
               </div>
             )}

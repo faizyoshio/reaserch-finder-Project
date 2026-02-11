@@ -129,7 +129,7 @@ export function SearchInput({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Cari Jurnal... / Search Papers..."
+          placeholder="Search papers..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}

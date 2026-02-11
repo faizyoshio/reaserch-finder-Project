@@ -16,7 +16,7 @@ export function ExternalSearchLinks({ query }: ExternalSearchLinksProps) {
   return (
     <div className="glass rounded-2xl p-4 sm:p-6 mb-6">
       <p className="text-xs sm:text-sm text-foreground/60 mb-3 font-medium">
-        Cari di sumber Indonesia / Search Indonesian sources
+        Try these external databases
       </p>
       <div className="flex flex-wrap gap-2 sm:gap-3">
         <a

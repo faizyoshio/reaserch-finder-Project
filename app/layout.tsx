@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'ResearchFinder - Academic Literature Discovery',
   description: 'ResearchFinder is a dedicated scholarly platform designed to streamline the discovery of academic literature and research publications.',
-  generator: 'v0.app',
+  generator: 'Faiz Yoshio',
   keywords: ['research', 'academic', 'journals', 'publications', 'literature'],
   authors: [{ name: 'faizyoshio.my.id' }],
   icons: {

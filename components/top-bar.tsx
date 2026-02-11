@@ -21,7 +21,7 @@ export function TopBar() {
             <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
               ResearchFinder
             </h1>
-            <p className="text-xs text-foreground/60 leading-none">Academic / Scholar</p>
+            <p className="text-xs text-foreground/60 leading-none">Academic Research</p>
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent sm:hidden">
             RF
@@ -40,7 +40,7 @@ export function TopBar() {
             aria-label="Saved articles"
           >
             <BookmarkIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">Tersimpan / Saved</span>
+            <span className="hidden sm:inline">Saved</span>
             <span className="sm:hidden">Saved</span>
           </Link>
 

@@ -56,11 +56,11 @@ export default function SavedPage() {
               <Bookmark className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold">
-              Tersimpan / Saved
+              Saved
             </h1>
           </div>
           <p className="text-sm sm:text-base text-foreground/70">
-            {savedArticles.length} artikel tersimpan / {savedArticles.length} articles saved
+            {savedArticles.length} articles saved
           </p>
         </div>
 
@@ -69,10 +69,10 @@ export default function SavedPage() {
           <div className="glass rounded-2xl p-8 sm:p-12 text-center">
             <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-foreground/20 mx-auto mb-4" />
             <h2 className="text-lg sm:text-xl font-semibold text-foreground/70 mb-2">
-              Belum ada artikel / No saved articles
+              No saved articles
             </h2>
             <p className="text-sm text-foreground/50">
-              Mulai cari dan simpan artikel favorit Anda / Start searching and save your favorite articles
+              Start searching and save your favorite articles
             </p>
           </div>
         )}

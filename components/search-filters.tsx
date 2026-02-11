@@ -10,26 +10,26 @@ interface SearchFiltersProps {
 }
 
 const sortOptions = [
-  { value: 'relevance', label: 'Relevansi / Relevance' },
-  { value: 'year', label: 'Terbaru / Newest' },
-  { value: 'citedBy', label: 'Paling Dikutip / Most Cited' },
+  { value: 'relevance', label: 'Relevance' },
+  { value: 'year', label: 'Newest' },
+  { value: 'citedBy', label: 'Most Cited' },
 ]
 
 const documentTypeOptions = [
-  { value: 'journal', label: 'Jurnal / Journal' },
-  { value: 'conference', label: 'Konferensi / Conference' },
+  { value: 'journal', label: 'Journal' },
+  { value: 'conference', label: 'Conference' },
   { value: 'preprint', label: 'Preprint' },
-  { value: 'book', label: 'Buku / Book' },
+  { value: 'book', label: 'Book' },
 ]
 
 const languageOptions = [
   { value: 'en', label: 'English' },
-  { value: 'id', label: 'Indonesia' },
-  { value: 'zh', label: '中文 / Chinese' },
-  { value: 'ja', label: '日本語 / Japanese' },
-  { value: 'es', label: 'Español / Spanish' },
-  { value: 'fr', label: 'Français / French' },
-  { value: 'de', label: 'Deutsch / German' },
+  { value: 'id', label: 'Indonesian' },
+  { value: 'zh', label: 'Chinese' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
 ]
 
 export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
@@ -41,7 +41,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
       <div className="space-y-4">
         {/* Open Access Filter */}
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-foreground">OA / Open Access</label>
+          <label className="text-sm font-medium text-foreground">Open Access</label>
           <button
             onClick={() => onParamsChange({ oaOnly: !params.oaOnly })}
             className={`glass-badge px-3 py-1.5 cursor-pointer transition-all ${
@@ -51,7 +51,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
             }`}
           >
             <span className={params.oaOnly ? 'text-green-700 dark:text-green-300 font-semibold' : 'text-foreground/60'}>
-              {params.oaOnly ? 'Ya / Yes' : 'Semua / All'}
+              {params.oaOnly ? 'Yes' : 'All'}
             </span>
           </button>
         </div>
@@ -59,7 +59,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
         {/* Document Type Filter */}
         <div>
           <label className="text-sm font-medium text-foreground block mb-2">
-            Tipe Dokumen / Document Type
+            Document Type
           </label>
           <div className="relative">
             <select
@@ -72,7 +72,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
               }
               className="glass-input w-full text-sm appearance-none pr-8"
             >
-              <option value="">Semua / All Types</option>
+              <option value="">All Types</option>
               {documentTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -86,7 +86,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
         {/* Language Filter */}
         <div>
           <label className="text-sm font-medium text-foreground block mb-2">
-            Bahasa / Language
+            Language
           </label>
           <div className="relative">
             <select
@@ -99,7 +99,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
               }
               className="glass-input w-full text-sm appearance-none pr-8"
             >
-              <option value="">Semua / All Languages</option>
+              <option value="">All Languages</option>
               {languageOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -115,7 +115,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
           {/* Year From */}
           <div>
             <label className="text-xs sm:text-sm font-medium text-foreground/70 block mb-2">
-              Dari / From
+              From
             </label>
             <select
               value={params.yearFrom || ''}
@@ -127,7 +127,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
               }
               className="glass-input w-full text-sm"
             >
-              <option value="">Pilih / Select</option>
+              <option value="">Select</option>
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -139,7 +139,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
           {/* Year To */}
           <div>
             <label className="text-xs sm:text-sm font-medium text-foreground/70 block mb-2">
-              Sampai / To
+              To
             </label>
             <select
               value={params.yearTo || ''}
@@ -151,7 +151,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
               }
               className="glass-input w-full text-sm"
             >
-              <option value="">Pilih / Select</option>
+              <option value="">Select</option>
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -164,7 +164,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
         {/* Sort Options */}
         <div>
           <label className="text-sm font-medium text-foreground block mb-2">
-            Sortir / Sort
+            Sort
           </label>
           <div className="relative">
             <select
@@ -203,7 +203,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
             }
             className="w-full glass-button text-sm font-medium py-2 text-foreground/70 hover:text-foreground"
           >
-            Atur Ulang / Reset Filters
+            Reset Filters
           </button>
         )}
       </div>
