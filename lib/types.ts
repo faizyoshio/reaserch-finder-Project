@@ -38,15 +38,6 @@ export interface AutocompleteResult {
   doi?: string
   year?: number
 }
-
-export interface LinkCheckResult {
-  ok: boolean
-  statusCode: number
-  finalUrl?: string
-  timestamp: string
-  error?: string
-}
-
 export interface ExportFormat {
   format: 'bibtex' | 'ris'
   content: string

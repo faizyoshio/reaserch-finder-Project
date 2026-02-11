@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { ExternalLink, Copy, Bookmark, BookmarkCheck, Download, AlertCircle, CheckCircle } from 'lucide-react'
 import { BookMarked as BookmarkFilled } from 'lucide-react' // Import BookmarkFilled
-import type { ResearchArticle, LinkCheckResult } from '@/lib/types'
+import type { ResearchArticle } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 
 interface ResultCardProps {
@@ -15,32 +15,8 @@ interface ResultCardProps {
 
 export function ResultCard({ article, isSaved = false, onSave, onUnsave }: ResultCardProps) {
   const { toast } = useToast()
-  const [linkCheckStatus, setLinkCheckStatus] = useState<LinkCheckResult | null>(null)
-  const [checkingLink, setCheckingLink] = useState(false)
   const [loadingExport, setLoadingExport] = useState<'bibtex' | 'ris' | null>(null)
-
-  const handleCheckLink = async () => {
-    if (!article.url) return
-
-    setCheckingLink(true)
-    try {
-      const response = await fetch('/api/linkcheck', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: article.url }),
-      })
-      const result = await response.json()
-      setLinkCheckStatus(result)
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to check link',
-        variant: 'destructive',
-      })
-    } finally {
-      setCheckingLink(false)
-    }
-  }
+  const [loadingExport, setLoadingExport] = useState<'bibtex' | 'ris' | null>(null)
 
   const handleExport = async (format: 'bibtex' | 'ris') => {
     if (!article.doi) {
@@ -164,18 +140,7 @@ export function ResultCard({ article, isSaved = false, onSave, onUnsave }: Resul
           </div>
         )}
 
-        {linkCheckStatus && (
-          <div className={`glass-badge ${linkCheckStatus.ok ? 'bg-green-500/20 border-green-400/40 dark:bg-green-500/15 dark:border-green-500/30' : 'bg-red-500/20 border-red-400/40 dark:bg-red-500/15 dark:border-red-500/30'}`}>
-            {linkCheckStatus.ok ? (
-              <CheckCircle className="w-3 h-3 text-green-700 dark:text-green-300" />
-            ) : (
-              <AlertCircle className="w-3 h-3 text-red-700 dark:text-red-300" />
-            )}
-            <span className={linkCheckStatus.ok ? 'text-green-700 dark:text-green-300 text-xs' : 'text-red-700 dark:text-red-300 text-xs'}>
-              {linkCheckStatus.ok ? 'Valid' : 'Error'}
-            </span>
-          </div>
-        )}
+        
       </div>
 
       {/* Action buttons */}
