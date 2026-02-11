@@ -70,7 +70,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                   page: 1,
                 })
               }
-              className="glass-input w-full text-sm appearance-none pr-8"
+              className="glass-input w-full text-sm text-foreground appearance-none pr-8"
             >
               <option value="">All Types</option>
               {documentTypeOptions.map((option) => (
@@ -97,7 +97,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                   page: 1,
                 })
               }
-              className="glass-input w-full text-sm appearance-none pr-8"
+              className="glass-input w-full text-sm text-foreground appearance-none pr-8"
             >
               <option value="">All Languages</option>
               {languageOptions.map((option) => (
@@ -125,7 +125,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                   page: 1,
                 })
               }
-              className="glass-input w-full text-sm"
+              className="glass-input w-full text-sm text-foreground"
             >
               <option value="">Select</option>
               {yearOptions.map((year) => (
@@ -149,7 +149,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
                   page: 1,
                 })
               }
-              className="glass-input w-full text-sm"
+              className="glass-input w-full text-sm text-foreground"
             >
               <option value="">Select</option>
               {yearOptions.map((year) => (

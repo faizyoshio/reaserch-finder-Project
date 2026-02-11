@@ -170,12 +170,6 @@ function HomeContent() {
             value={query}
             onChange={setQuery}
             onSearch={handleSearch}
-            onAutocompleteSelect={(suggestion: AutocompleteResult) => {
-              setQuery(suggestion.title)
-              const newParams = { ...params, q: suggestion.title, page: 1 }
-              setParams(newParams)
-              performSearch(suggestion.title, newParams)
-            }}
           />
         </div>
 
