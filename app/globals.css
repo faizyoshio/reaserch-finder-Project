@@ -352,6 +352,17 @@
     border-color: rgba(255, 255, 255, 0.15);
   }
 
+  /* Ensure native select dropdown text stays readable in both themes */
+  select.glass-input option {
+    color: #111827;
+    background-color: #ffffff;
+  }
+
+  .dark select.glass-input option {
+    color: #f9fafb;
+    background-color: #111827;
+  }
+
   .glass-input:focus-within {
     border-color: rgba(0, 122, 255, 0.8);
     box-shadow: 

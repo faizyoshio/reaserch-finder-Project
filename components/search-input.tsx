@@ -57,12 +57,6 @@ export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
     setShowSuggestions(false)
   }
 
-  const insertSyntaxToken = (token: string) => {
-    const next = value.trim() ? `${value.trim()} ${token}` : token
-    onChange(next)
-    inputRef.current?.focus()
-  }
-
   return (
     <div className="relative w-full">
       <div className="glass-input flex items-center gap-2 px-4 py-3 sm:py-4" onFocus={() => setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}>
@@ -76,7 +70,6 @@ export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
           onKeyDown={handleKeyDown}
           className="flex-1 bg-transparent text-foreground placeholder-foreground/40 focus:outline-none text-sm sm:text-base"
           aria-label="Search for academic articles"
-          aria-describedby="search-syntax-helper"
         />
         {value && (
           <button
@@ -105,40 +98,6 @@ export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
           </div>
         </div>
       )}
-
-      <div id="search-syntax-helper" className="mt-2">
-        <div className="text-xs text-foreground/55 mb-1.5">Advanced syntax</div>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => insertSyntaxToken('"machine learning"')}
-            className="glass-badge text-xs px-2 py-1 hover:ring-2 hover:ring-foreground/20"
-          >
-            &quot;exact phrase&quot;
-          </button>
-          <button
-            type="button"
-            onClick={() => insertSyntaxToken('author:"Andrew Ng"')}
-            className="glass-badge text-xs px-2 py-1 hover:ring-2 hover:ring-foreground/20"
-          >
-            author:&quot;name&quot;
-          </button>
-          <button
-            type="button"
-            onClick={() => insertSyntaxToken('year:>=2020')}
-            className="glass-badge text-xs px-2 py-1 hover:ring-2 hover:ring-foreground/20"
-          >
-            year:&gt;=2020
-          </button>
-          <button
-            type="button"
-            onClick={() => insertSyntaxToken('year:<=2023')}
-            className="glass-badge text-xs px-2 py-1 hover:ring-2 hover:ring-foreground/20"
-          >
-            year:&lt;=2023
-          </button>
-        </div>
-      </div>
 
       {/* Validation Message */}
       {value && !validation.isValidSearchQuery(value) && (
