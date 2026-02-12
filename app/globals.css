@@ -239,8 +239,8 @@
   /* Glass effect with more blur (strong) */
   .glass-strong {
     background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(20px) saturate(1.5);
-    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    backdrop-filter: blur(50px) saturate(1.5);
+    -webkit-backdrop-filter: blur(50px) saturate(1.5);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     box-shadow: 
@@ -289,8 +289,8 @@
       0 0 0 1px rgba(255, 255, 255, 0.5) inset,
       var(--shadow-xs);
     position: relative;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .dark .glass-button {
@@ -400,8 +400,8 @@
   /* Extra frosted variant */
   .glass-frosted {
     background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(25px) saturate(1.6) brightness(1.1);
-    -webkit-backdrop-filter: blur(25px) saturate(1.6) brightness(1.1);
+    backdrop-filter: blur(55px) saturate(1.6) brightness(1.1);
+    -webkit-backdrop-filter: blur(55px) saturate(1.6) brightness(1.1);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     box-shadow: 
@@ -412,8 +412,8 @@
 
   .dark .glass-frosted {
     background: rgba(28, 28, 30, 0.3);
-    backdrop-filter: blur(25px) saturate(1.4) brightness(0.95);
-    -webkit-backdrop-filter: blur(25px) saturate(1.4) brightness(0.95);
+    backdrop-filter: blur(55px) saturate(1.4) brightness(0.95);
+    -webkit-backdrop-filter: blur(55px) saturate(1.4) brightness(0.95);
   }
 
   .filter-panel {
