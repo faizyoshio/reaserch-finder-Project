@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { FilterToggleButton, FilterPanel } from '@/components/search-filters'
 import type { ResearchArticle, SearchParams, SearchResponse, SavedArticle } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
-import { validation } from '@/lib/utils'
+import { validation, safeHttpUrl } from '@/lib/utils'
 
 type QuickPreset = 'oa' | 'recent5' | 'cited' | 'journal'
 const LAST_PRESET_KEY = 'researchfinder-last-quick-preset'
@@ -288,9 +288,17 @@ function HomeContent() {
     results.forEach((article) => {
       const idKey = article.doi || `${article.source}-${article.id}`
       if (!selectedIds.has(idKey)) return
+      const escapeBibTeX = (value: string) =>
+        value
+          .replace(/[\r\n]+/g, ' ')
+          .replace(/\\/g, '\\\\')
+          .replace(/[{}]/g, (m) => `\\${m}`)
+          .trim()
       const citeKey = (article.doi || article.id || article.title).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30)
-      const authors = (article.authors || []).join(' and ')
-      entries.push(`@article{${citeKey},\n  title = {${article.title}},\n  author = {${authors}},\n  year = {${article.year || ''}},\n  url = {${article.url || ''}}\n}`)
+      const authors = escapeBibTeX((article.authors || []).join(' and ') || 'Unknown')
+      const title = escapeBibTeX(article.title || 'Untitled')
+      const url = safeHttpUrl(article.url) || ''
+      entries.push(`@article{${citeKey},\n  title = {${title}},\n  author = {${authors}},\n  year = {${article.year || ''}},\n  url = {${url}}\n}`)
     })
 
     const blob = new Blob([entries.join('\n\n')], { type: 'text/plain;charset=utf-8' })
@@ -309,15 +317,17 @@ function HomeContent() {
     if (selectedIds.size === 0) return
     const selectedArticles = getSelectedArticles()
     const entries = selectedArticles.map((article) => {
-      const authorLines = (article.authors || []).map((author) => `AU  - ${author}`).join('\n')
+      const sanitizeRisValue = (value: string) => value.replace(/[\r\n]+/g, ' ').trim()
+      const authorLines = (article.authors || []).map((author) => `AU  - ${sanitizeRisValue(author)}`).join('\n')
+      const url = safeHttpUrl(article.url)
       return [
         'TY  - JOUR',
-        `TI  - ${article.title}`,
+        `TI  - ${sanitizeRisValue(article.title || 'Untitled')}`,
         authorLines,
         `PY  - ${article.year || ''}`,
-        article.venue ? `JO  - ${article.venue}` : '',
-        article.doi ? `DO  - ${article.doi}` : '',
-        article.url ? `UR  - ${article.url}` : '',
+        article.venue ? `JO  - ${sanitizeRisValue(article.venue)}` : '',
+        article.doi ? `DO  - ${sanitizeRisValue(article.doi)}` : '',
+        url ? `UR  - ${url}` : '',
         'ER  - ',
       ]
         .filter(Boolean)

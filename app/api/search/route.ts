@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { ResearchArticle, SearchResponse } from '@/lib/types'
-import { parseSearchSyntax } from '@/lib/utils'
+import { parseSearchSyntax, safeHttpUrl } from '@/lib/utils'
 
 const searchCache = new Map<string, { data: SearchResponse; timestamp: number }>()
 const CACHE_TTL = 60 * 1000
@@ -44,7 +44,11 @@ interface ParsedRequestQuery {
 }
 
 function normalizeDoi(doi: string): string {
-  return doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, '').replace(/^doi:/, '')
+  return doi
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/^https?:\/\/(dx\.)?doi\.org\//, '')
+    .replace(/^doi:/, '')
 }
 
 function normalizeText(value: string): string {
@@ -160,7 +164,7 @@ async function fetchOpenAlex(
       year: work.publication_year,
       venue: work.host_venue?.display_name,
       doi: work.doi ? normalizeDoi(work.doi) : undefined,
-      url: work.landing_page_url,
+      url: safeHttpUrl(work.landing_page_url),
       citedBy: work.cited_by_count,
       openAccess: work.open_access.is_oa,
       source: 'openAlex',
@@ -203,7 +207,7 @@ async function fetchCrossref(
       year: item.published?.['date-parts']?.[0]?.[0] || new Date().getFullYear(),
       venue: item.container?.title,
       doi: item.DOI ? normalizeDoi(item.DOI) : undefined,
-      url: item.URL,
+      url: safeHttpUrl(item.URL),
       citedBy: item.is_referenced_by_count || 0,
       openAccess: false,
       source: 'crossref',
@@ -226,13 +230,27 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const rawQuery = searchParams.get('q')?.trim() || ''
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const perPage = Math.min(25, Math.max(1, parseInt(searchParams.get('perPage') || '10', 10)))
+    if (rawQuery.length > 500) {
+      return NextResponse.json({ error: 'Search query too long.', code: 'QUERY_TOO_LONG' }, { status: 400 })
+    }
+
+    const MAX_PAGE = 50
+    const pageRaw = parseInt(searchParams.get('page') || '1', 10)
+    const page = Number.isFinite(pageRaw) ? Math.max(1, Math.min(MAX_PAGE, pageRaw)) : 1
+    if (pageRaw > MAX_PAGE) {
+      return NextResponse.json({ error: `Page limit exceeded (max ${MAX_PAGE}).`, code: 'PAGE_LIMIT' }, { status: 400 })
+    }
+    const perPageRaw = parseInt(searchParams.get('perPage') || '10', 10)
+    const perPageParsed = Number.isFinite(perPageRaw) ? perPageRaw : 10
+    const perPage = Math.min(25, Math.max(1, perPageParsed))
     const uiYearFrom = searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!, 10) : undefined
     const uiYearTo = searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!, 10) : undefined
     const oaOnly = searchParams.get('oaOnly') === 'true'
-    const sort = (searchParams.get('sort') || 'relevance') as 'relevance' | 'year' | 'citedBy'
-    const sortDir = (searchParams.get('sortDir') || 'desc') as 'asc' | 'desc'
+    const sortParam = (searchParams.get('sort') || 'relevance').toLowerCase()
+    const sort: 'relevance' | 'year' | 'citedBy' =
+      sortParam === 'year' || sortParam === 'citedby' ? (sortParam === 'citedby' ? 'citedBy' : 'year') : 'relevance'
+    const sortDirParam = (searchParams.get('sortDir') || 'desc').toLowerCase()
+    const sortDir: 'asc' | 'desc' = sortDirParam === 'asc' ? 'asc' : 'desc'
     const documentType = searchParams.get('documentType') || undefined
     const language = searchParams.get('language') || undefined
 
@@ -328,14 +346,16 @@ export async function GET(request: NextRequest) {
       combined.reverse()
     }
 
-    const start = (page - 1) * perPage
-    const paginatedArticles = combined.slice(start, start + perPage)
+    // Each upstream source is already paginated by `page`/`perPage`. After merging/deduping/sorting,
+    // return up to `perPage` articles for this page.
+    const paginatedArticles = combined.slice(0, perPage)
+    const totalEstimate = openAlexResult.total + crossrefResult.total
     const response: SearchResponse = {
       articles: paginatedArticles,
-      total: combined.length,
+      total: totalEstimate,
       page,
       perPage,
-      hasMore: start + perPage < combined.length,
+      hasMore: totalEstimate > page * perPage,
       warnings: warnings.length > 0 ? warnings : undefined,
     }
 

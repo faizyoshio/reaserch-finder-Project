@@ -132,3 +132,31 @@ export const validation = {
     return ''
   },
 }
+
+export function safeHttpUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  if (trimmed.length > 2048) return undefined
+
+  try {
+    const url = new URL(trimmed)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined
+    return url.toString()
+  } catch {
+    return undefined
+  }
+}
+
+export function sanitizeAsciiFilename(value: unknown, fallback: string): string {
+  const str = typeof value === 'string' ? value : ''
+  const cleaned = str
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+
+  // Avoid empty names and keep it reasonably short for cross-platform compatibility.
+  const safe = (cleaned || fallback).slice(0, 120)
+  return safe || fallback
+}

@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { ExternalLink, Copy, Bookmark, BookmarkCheck, Download } from 'lucide-react'
 import type { ResearchArticle } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
-import { parseSearchSyntax } from '@/lib/utils'
+import { parseSearchSyntax, safeHttpUrl, sanitizeAsciiFilename } from '@/lib/utils'
 
 interface ResultCardProps {
   article: ResearchArticle
@@ -33,6 +33,7 @@ export function ResultCard({
 }: ResultCardProps) {
   const { toast } = useToast()
   const [loadingExport, setLoadingExport] = useState<'bibtex' | 'ris' | null>(null)
+  const safeArticleUrl = safeHttpUrl(article.url)
 
   const parsedQuery = parseSearchSyntax(query || '')
   const highlightTerms = parsedQuery.cleanedQuery
@@ -77,7 +78,8 @@ export function ResultCard({
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${article.title.slice(0, 50)}.${format === 'bibtex' ? 'bib' : 'ris'}`
+      const downloadBase = sanitizeAsciiFilename(article.title, 'article').slice(0, 60)
+      a.download = `${downloadBase}.${format === 'bibtex' ? 'bib' : 'ris'}`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -241,9 +243,9 @@ export function ResultCard({
         </div>
 
         <div className="flex flex-wrap gap-2 pt-3 border-t border-white/20 dark:border-blue-200/10">
-          {article.url && (
+          {safeArticleUrl && (
             <a
-              href={article.url}
+              href={safeArticleUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="glass-button inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm"

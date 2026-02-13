@@ -47,7 +47,8 @@ function ChartContainer({
   >['children']
 }) {
   const uniqueId = React.useId()
-  const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
+  const chartIdBase = `${id || uniqueId}`.replace(/[^a-zA-Z0-9_-]/g, '') || 'chart'
+  const chartId = `chart-${chartIdBase}`
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -78,27 +79,46 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
+  const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '') || 'chart'
+  const sanitizeVarKey = (value: string) =>
+    value.replace(/[^a-zA-Z0-9_-]/g, '')
+  const sanitizeCssValue = (value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    if (trimmed.length > 128) return null
+    // Prevent breaking out of CSS blocks / property injection.
+    if (/[<>{}\r\n;]/.test(trimmed)) return null
+    return trimmed
+  }
+
+  const cssText = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const vars = colorConfig
+        .map(([key, itemConfig]) => {
+          const safeKey = sanitizeVarKey(key)
+          if (!safeKey) return null
+
+          const color =
+            itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+            itemConfig.color
+          if (!color) return null
+
+          const safeColor = sanitizeCssValue(color)
+          if (!safeColor) return null
+
+          return `  --color-${safeKey}: ${safeColor};`
+        })
+        .filter(Boolean)
+        .join('\n')
+
+      if (!vars) return ''
+      return `${prefix} [data-chart="${safeId}"] {\n${vars}\n}`
+    })
+    .filter(Boolean)
+    .join('\n')
+
   return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join('\n')}
-}
-`,
-          )
-          .join('\n'),
-      }}
-    />
+    <style>{cssText}</style>
   )
 }
 
