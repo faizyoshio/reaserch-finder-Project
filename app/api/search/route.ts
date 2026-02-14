@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { ResearchArticle, SearchResponse } from '@/lib/types'
 import { parseSearchSyntax, safeHttpUrl } from '@/lib/utils'
+import { corsPreflightResponse, rejectIfCorsDisallowed, withCors } from '@/lib/server/cors'
 
 const searchCache = new Map<string, { data: SearchResponse; timestamp: number }>()
 const CACHE_TTL = 60 * 1000
@@ -227,18 +228,23 @@ function mergeYearBound(uiYearFrom?: number, uiYearTo?: number, syntaxYearFrom?:
 }
 
 export async function GET(request: NextRequest) {
+  const corsRejection = rejectIfCorsDisallowed(request)
+  if (corsRejection) return corsRejection
+
+  const json = (body: unknown, init?: ResponseInit) => withCors(request, NextResponse.json(body, init))
+
   try {
     const searchParams = request.nextUrl.searchParams
     const rawQuery = searchParams.get('q')?.trim() || ''
     if (rawQuery.length > 500) {
-      return NextResponse.json({ error: 'Search query too long.', code: 'QUERY_TOO_LONG' }, { status: 400 })
+      return json({ error: 'Search query too long.', code: 'QUERY_TOO_LONG' }, { status: 400 })
     }
 
     const MAX_PAGE = 50
     const pageRaw = parseInt(searchParams.get('page') || '1', 10)
     const page = Number.isFinite(pageRaw) ? Math.max(1, Math.min(MAX_PAGE, pageRaw)) : 1
     if (pageRaw > MAX_PAGE) {
-      return NextResponse.json({ error: `Page limit exceeded (max ${MAX_PAGE}).`, code: 'PAGE_LIMIT' }, { status: 400 })
+      return json({ error: `Page limit exceeded (max ${MAX_PAGE}).`, code: 'PAGE_LIMIT' }, { status: 400 })
     }
     const perPageRaw = parseInt(searchParams.get('perPage') || '10', 10)
     const perPageParsed = Number.isFinite(perPageRaw) ? perPageRaw : 10
@@ -255,14 +261,14 @@ export async function GET(request: NextRequest) {
     const language = searchParams.get('language') || undefined
 
     if (!rawQuery) {
-      return NextResponse.json({ error: 'Please enter a search query.', code: 'EMPTY_QUERY' }, { status: 400 })
+      return json({ error: 'Please enter a search query.', code: 'EMPTY_QUERY' }, { status: 400 })
     }
 
     const parsedSyntax = parseSearchSyntax(rawQuery)
     const cleanedWords = parsedSyntax.cleanedQuery.split(/\s+/).filter((word) => word.length > 0)
     const hasStructured = parsedSyntax.hasStructuredSyntax
     if (!hasStructured && cleanedWords.length < 3) {
-      return NextResponse.json(
+      return json(
         {
           error: `Free-text search needs at least 3 words. Only ${cleanedWords.length} provided.`,
           code: 'QUERY_TOO_SHORT',
@@ -293,7 +299,7 @@ export async function GET(request: NextRequest) {
     const cacheKey = `${query.effectiveQuery}:${page}:${perPage}:${yearFrom}:${yearTo}:${oaOnly}:${sort}:${sortDir}:${documentType}:${language}`
     const cached = searchCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return NextResponse.json(cached.data)
+      return json(cached.data)
     }
 
     const [openAlexResult, crossrefResult] = await Promise.all([
@@ -308,7 +314,7 @@ export async function GET(request: NextRequest) {
       crossrefResult.errorCode
     ) {
       const isRateLimited = openAlexResult.errorCode === 'rate_limit' || crossrefResult.errorCode === 'rate_limit'
-      return NextResponse.json(
+      return json(
         {
           error: isRateLimited
             ? 'Search sources are rate-limited. Please wait a moment and retry.'
@@ -365,12 +371,13 @@ export async function GET(request: NextRequest) {
       searchCache.delete(oldest[0])
     }
 
-    return NextResponse.json(response)
+    return json(response)
   } catch (error) {
     console.error('[ResearchFinder] Search API error:', error)
-    return NextResponse.json(
-      { error: 'Unexpected server error while searching. Please retry.', code: 'SEARCH_FAILED' },
-      { status: 500 }
-    )
+    return json({ error: 'Unexpected server error while searching. Please retry.', code: 'SEARCH_FAILED' }, { status: 500 })
   }
+}
+
+export function OPTIONS(request: NextRequest) {
+  return corsPreflightResponse(request)
 }

@@ -173,7 +173,7 @@ function HomeContent() {
         // Update URL
         router.push(`/?${queryString}`)
       } catch (error) {
-        console.error('[ResearchFinder] Search error:', error)
+        console.error('[ResearchFinder] Search error')
         const errorMessage = error instanceof Error ? error.message : 'Search failed'
         toast({
           title: 'Error',

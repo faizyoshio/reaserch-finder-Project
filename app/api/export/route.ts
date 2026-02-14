@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { safeHttpUrl, sanitizeAsciiFilename } from '@/lib/utils'
+import { corsPreflightResponse, rejectIfCorsDisallowed, withCors } from '@/lib/server/cors'
+import { fetchWithRedirectAllowlist } from '@/lib/server/safe-fetch'
+
+const DOI_REDIRECT_ALLOWED_HOSTS = [
+  'doi.org',
+  'dx.doi.org',
+  'api.crossref.org',
+  'data.crosscite.org',
+  'api.datacite.org',
+  'data.datacite.org',
+]
 
 function normalizeDoi(doi: string): string {
   return doi
@@ -91,11 +102,14 @@ async function fetchFromDoi(doi: string, format: 'bibtex' | 'ris'): Promise<stri
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 10_000)
-    const response = await fetch(`https://doi.org/${normalized}`, {
-      headers: { Accept: acceptHeader },
-      redirect: 'follow',
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeout))
+    const response = await fetchWithRedirectAllowlist(
+      `https://doi.org/${normalized}`,
+      {
+        headers: { Accept: acceptHeader },
+        signal: controller.signal,
+      },
+      { allowedHosts: DOI_REDIRECT_ALLOWED_HOSTS, maxRedirects: 4 }
+    ).finally(() => clearTimeout(timeout))
 
     if (response.ok && response.headers.get('content-type')?.includes(format === 'bibtex' ? 'bibtex' : 'x-research-info-systems')) {
       return await response.text()
@@ -120,16 +134,21 @@ const exportRequestSchema = z
   .strict()
 
 export async function POST(request: NextRequest) {
+  const corsRejection = rejectIfCorsDisallowed(request)
+  if (corsRejection) return corsRejection
+
+  const json = (body: unknown, init?: ResponseInit) => withCors(request, NextResponse.json(body, init))
+
   try {
     const body = await request.json().catch(() => null)
     const parsed = exportRequestSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request parameters' }, { status: 400 })
+      return json({ error: 'Invalid request parameters' }, { status: 400 })
     }
 
     const doi = normalizeDoi(parsed.data.doi)
     if (!isProbablyDoi(doi)) {
-      return NextResponse.json({ error: 'Invalid DOI' }, { status: 400 })
+      return json({ error: 'Invalid DOI' }, { status: 400 })
     }
 
     const format = parsed.data.format
@@ -159,7 +178,7 @@ export async function POST(request: NextRequest) {
     const filenameBase = `${titlePart}-${doiPart}`.slice(0, 160)
     const filename = `${filenameBase}.${ext}`
 
-    return new NextResponse(content, {
+    const response = new NextResponse(content, {
       headers: {
         'Content-Type': format === 'bibtex' ? 'application/x-bibtex' : 'application/x-research-info-systems',
         'Content-Disposition': `attachment; filename="${filename}"`,
@@ -167,11 +186,14 @@ export async function POST(request: NextRequest) {
         'X-Content-Type-Options': 'nosniff',
       },
     })
+
+    return withCors(request, response)
   } catch (error) {
     console.error('[ResearchFinder] Export API error:', error)
-    return NextResponse.json(
-      { error: 'Export failed' },
-      { status: 500 }
-    )
+    return json({ error: 'Export failed' }, { status: 500 })
   }
+}
+
+export function OPTIONS(request: NextRequest) {
+  return corsPreflightResponse(request)
 }
