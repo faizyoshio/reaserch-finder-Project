@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { ResearchArticle, SearchResponse } from '@/lib/types'
 import { parseSearchSyntax, safeHttpUrl } from '@/lib/utils'
 import { corsPreflightResponse, rejectIfCorsDisallowed, withCors } from '@/lib/server/cors'
+import { fetchWithRedirectAllowlist } from '@/lib/server/safe-fetch'
 
 const searchCache = new Map<string, { data: SearchResponse; timestamp: number }>()
 const CACHE_TTL = 60 * 1000
+
+const OPENALEX_ALLOWED_HOSTS = ['api.openalex.org'] as const
+const CROSSREF_ALLOWED_HOSTS = ['api.crossref.org'] as const
 
 interface OpenAlexWork {
   id: string
@@ -146,8 +150,13 @@ async function fetchOpenAlex(
     }
 
     const filter = filterParts.length > 0 ? `&filter=${filterParts.join(',')}` : ''
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&page=${page}&per-page=${perPage}${filter}&sort=-publication_year`
-    const response = await fetch(url, { next: { revalidate: 60 } })
+    // OpenAlex sort syntax uses `field:direction` (e.g. `publication_year:desc`).
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&page=${page}&per-page=${perPage}${filter}&sort=publication_year:desc`
+    const response = await fetchWithRedirectAllowlist(
+      url,
+      { next: { revalidate: 60 } },
+      { allowedHosts: OPENALEX_ALLOWED_HOSTS, maxRedirects: 2 }
+    )
 
     if (!response.ok) {
       return {
@@ -191,7 +200,11 @@ async function fetchCrossref(
     if (yearFrom) url += `&filter=from-pub-date:${yearFrom}-01-01`
     if (yearTo) url += `${yearFrom ? ',' : '&filter='}until-pub-date:${yearTo}-12-31`
 
-    const response = await fetch(url, { next: { revalidate: 60 } })
+    const response = await fetchWithRedirectAllowlist(
+      url,
+      { next: { revalidate: 60 } },
+      { allowedHosts: CROSSREF_ALLOWED_HOSTS, maxRedirects: 2 }
+    )
     if (!response.ok) {
       return {
         articles: [],

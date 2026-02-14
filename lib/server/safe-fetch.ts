@@ -3,6 +3,15 @@ export interface RedirectAllowlistOptions {
   maxRedirects?: number
 }
 
+// Next.js extends `fetch` with a `next` option for caching/revalidation. Keep this type
+// minimal and compatible with the standard `RequestInit` so this helper works in route handlers.
+export type NextFetchInit = RequestInit & {
+  next?: {
+    revalidate?: number | false
+    tags?: string[]
+  }
+}
+
 function isRedirectStatus(status: number) {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308
 }
@@ -13,7 +22,7 @@ function getAllowedHostSet(options: RedirectAllowlistOptions) {
 
 export async function fetchWithRedirectAllowlist(
   input: string,
-  init: RequestInit,
+  init: NextFetchInit,
   options: RedirectAllowlistOptions
 ): Promise<Response> {
   const allowedHosts = getAllowedHostSet(options)
