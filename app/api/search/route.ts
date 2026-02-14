@@ -10,6 +10,8 @@ const CACHE_TTL = 60 * 1000
 const OPENALEX_ALLOWED_HOSTS = ['api.openalex.org'] as const
 const CROSSREF_ALLOWED_HOSTS = ['api.crossref.org'] as const
 
+type AbstractInvertedIndex = Record<string, number[]>
+
 interface OpenAlexWork {
   id: string
   title: string
@@ -20,6 +22,14 @@ interface OpenAlexWork {
   open_access: { is_oa: boolean }
   cited_by_count: number
   landing_page_url?: string
+  abstract_inverted_index?: AbstractInvertedIndex
+  relevance_score?: number
+  type?: string
+}
+
+interface OpenAlexWorksResponse {
+  meta?: { count?: number }
+  results?: OpenAlexWork[]
 }
 
 interface CrossrefArticle {
@@ -46,6 +56,249 @@ interface ParsedRequestQuery {
   yearFrom?: number
   yearTo?: number
   phrases: string[]
+}
+
+interface DiseaseProfile {
+  canonical: string
+  primaryKeyword: string
+  conceptId?: string
+  validationRegex: RegExp
+}
+
+interface CountryProfile {
+  name: string
+  countryCode: string
+  keywords: string[]
+}
+
+interface ProcessedQuery {
+  originalQuery: string
+  cleanedQuery: string
+  extractedKeywords: string[]
+  translatedKeywords: string[]
+  disease?: DiseaseProfile
+  country?: CountryProfile
+  secondaryGroups: string[][]
+}
+
+const INDONESIAN_STOPWORDS = new Set([
+  'dan',
+  'atau',
+  'yang',
+  'dari',
+  'di',
+  'ke',
+  'pada',
+  'untuk',
+  'dengan',
+  'dalam',
+  'sebagai',
+  'oleh',
+  'guna',
+  'agar',
+  'karena',
+  'sehingga',
+  'tersebut',
+  'ini',
+  'itu',
+  'suatu',
+  'sebuah',
+  'para',
+  'lebih',
+  'kurang',
+  'sangat',
+  'juga',
+  'atau',
+  'the',
+  'a',
+  'an',
+  'of',
+  'to',
+  'in',
+  'on',
+  'for',
+  'with',
+])
+
+// Generic academic terms that reduce precision for scientific retrieval.
+const GENERIC_ACADEMIC_TERMS_ID = new Set([
+  'analisis',
+  'studi',
+  'pengaruh',
+  'hubungan',
+  'faktor',
+  'tingkat',
+  'kajian',
+  'bahaya',
+  'terhadap',
+  'penelitian',
+  'metode',
+  'pendekatan',
+  'evaluasi',
+  'tinjauan',
+  'review',
+  'literatur',
+])
+
+const COUNTRY_PROFILES: CountryProfile[] = [
+  { name: 'Indonesia', countryCode: 'ID', keywords: ['indonesia'] },
+]
+
+// Disease concepts: keep small and focused; can be extended over time.
+const DISEASE_PROFILES: DiseaseProfile[] = [
+  {
+    canonical: 'HIV',
+    primaryKeyword: 'hiv',
+    conceptId: 'C3013748606', // Human immunodeficiency virus (HIV)
+    validationRegex: /(?:\bhiv\b|h\.?i\.?v\.?)/i,
+  },
+]
+
+const EPIDEMIOLOGY_TRANSLATIONS: Record<string, string[]> = {
+  // Indonesian -> English (domain-aware)
+  persebaran: ['transmission', 'spread', 'prevalence'],
+  penyebaran: ['transmission', 'spread', 'prevalence'],
+  penularan: ['transmission'],
+  prevalensi: ['prevalence'],
+  'angka_kejadian': ['incidence'],
+  kejadian: ['incidence'],
+  kematian: ['mortality'],
+  epidemiologi: ['epidemiology'],
+}
+
+function normalizeKeywordToken(token: string): string {
+  const cleaned = token.trim()
+  if (!cleaned) return ''
+  const lower = cleaned.toLowerCase()
+  if (lower === 'hiv') return 'HIV'
+  return lower
+}
+
+function normalizeQueryForKeywords(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/\bangka\s+kejadian\b/g, 'angka_kejadian')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function tokenizeKeywords(input: string): string[] {
+  if (!input) return []
+  return input
+    .replace(/[^a-z0-9_\s-]+/gi, ' ')
+    .replace(/[-/]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((t) => t.trim())
+    .filter(Boolean)
+}
+
+function uniquePreserveOrder(items: string[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const item of items) {
+    if (!item) continue
+    const key = item.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(item)
+  }
+  return out
+}
+
+function buildAbstractFromInvertedIndex(index?: AbstractInvertedIndex): string | undefined {
+  if (!index) return undefined
+  const wordsByPos: string[] = []
+  for (const [word, positions] of Object.entries(index)) {
+    for (const pos of positions) {
+      if (!Number.isFinite(pos)) continue
+      wordsByPos[pos] = word
+    }
+  }
+
+  const abstract = wordsByPos.filter(Boolean).join(' ').trim()
+  return abstract || undefined
+}
+
+function detectDiseaseProfile(extractedKeywords: string[]): DiseaseProfile | undefined {
+  const lower = extractedKeywords.map((k) => k.toLowerCase())
+  return DISEASE_PROFILES.find((profile) => lower.includes(profile.primaryKeyword))
+}
+
+function detectCountryProfile(extractedKeywords: string[]): CountryProfile | undefined {
+  const lower = extractedKeywords.map((k) => k.toLowerCase())
+  return COUNTRY_PROFILES.find((profile) => profile.keywords.some((kw) => lower.includes(kw)))
+}
+
+function scoreSecondaryGroup(sourceKeyword: string): number {
+  const lower = sourceKeyword.toLowerCase()
+  let score = 0
+  if (EPIDEMIOLOGY_TRANSLATIONS[lower]) score += 10
+  if (lower.length >= 7) score += 2
+  if (/\d/.test(lower)) score -= 2
+  return score
+}
+
+function processQueryForOpenAlex(originalQuery: string, cleanedQuery: string, phrases: string[]): ProcessedQuery {
+  const normalized = normalizeQueryForKeywords(cleanedQuery || originalQuery)
+  const phraseText = phrases.join(' ')
+  const allTokens = tokenizeKeywords(`${normalized} ${phraseText}`)
+
+  let extracted = uniquePreserveOrder(
+    allTokens
+      .map((t) => t.toLowerCase())
+      .filter((t) => t.length >= 2)
+      .filter((t) => !INDONESIAN_STOPWORDS.has(t))
+      .filter((t) => !GENERIC_ACADEMIC_TERMS_ID.has(t))
+  )
+
+  const disease = detectDiseaseProfile(extracted)
+  const country = detectCountryProfile(extracted)
+
+  // Prefer domain anchors first (e.g., diseases), then context (e.g., geo).
+  if (disease) {
+    const rest = extracted.filter((k) => k.toLowerCase() !== disease.primaryKeyword)
+    extracted = [disease.primaryKeyword, ...rest]
+  }
+  if (country) {
+    const countrySet = new Set(country.keywords.map((k) => k.toLowerCase()))
+    const nonCountry = extracted.filter((k) => !countrySet.has(k.toLowerCase()))
+    const onlyCountry = extracted.filter((k) => countrySet.has(k.toLowerCase()))
+    extracted = [...nonCountry, ...onlyCountry]
+  }
+
+  const secondarySource = extracted.filter((k) => {
+    const lower = k.toLowerCase()
+    if (disease && lower === disease.primaryKeyword) return false
+    if (country && country.keywords.includes(lower)) return false
+    return true
+  })
+
+  const rankedSecondary = [...secondarySource].sort((a, b) => scoreSecondaryGroup(b) - scoreSecondaryGroup(a))
+  const secondaryGroups = rankedSecondary.slice(0, 2).map((keyword) => {
+    const lower = keyword.toLowerCase()
+    const translations = EPIDEMIOLOGY_TRANSLATIONS[lower] || []
+    const group = uniquePreserveOrder([lower, ...translations])
+    return group.map(normalizeKeywordToken).filter(Boolean)
+  })
+
+  const translatedKeywordList = uniquePreserveOrder([
+    ...extracted.map(normalizeKeywordToken).filter(Boolean),
+    ...secondaryGroups.flat(),
+    ...(country ? [country.name] : []),
+    ...(disease ? [disease.canonical] : []),
+  ])
+
+  return {
+    originalQuery,
+    cleanedQuery,
+    extractedKeywords: extracted,
+    translatedKeywords: translatedKeywordList,
+    disease,
+    country,
+    secondaryGroups,
+  }
 }
 
 function normalizeDoi(doi: string): string {
@@ -125,7 +378,7 @@ function inferRelevanceReasons(article: ResearchArticle, parsed: ParsedRequestQu
 }
 
 async function fetchOpenAlex(
-  query: string,
+  processed: ProcessedQuery,
   page: number,
   perPage: number,
   yearFrom?: number,
@@ -134,10 +387,10 @@ async function fetchOpenAlex(
   documentType?: string
 ): Promise<SourceResult> {
   try {
-    const filterParts: string[] = []
-    if (yearFrom) filterParts.push(`publication_year:>=${yearFrom}`)
-    if (yearTo) filterParts.push(`publication_year:<=${yearTo}`)
-    if (oaOnly) filterParts.push('open_access.is_oa:true')
+    const baseFilters: string[] = []
+    if (yearFrom) baseFilters.push(`publication_year:>=${yearFrom}`)
+    if (yearTo) baseFilters.push(`publication_year:<=${yearTo}`)
+    if (oaOnly) baseFilters.push('open_access.is_oa:true')
     if (documentType) {
       const typeMap: Record<string, string> = {
         journal: 'journal-article',
@@ -146,41 +399,266 @@ async function fetchOpenAlex(
         book: 'book',
       }
       const mapped = typeMap[documentType]
-      if (mapped) filterParts.push(`type:${mapped}`)
+      if (mapped) baseFilters.push(`type:${mapped}`)
     }
 
-    const filter = filterParts.length > 0 ? `&filter=${filterParts.join(',')}` : ''
-    // OpenAlex sort syntax uses `field:direction` (e.g. `publication_year:desc`).
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&page=${page}&per-page=${perPage}${filter}&sort=publication_year:desc`
-    const response = await fetchWithRedirectAllowlist(
-      url,
-      { next: { revalidate: 60 } },
-      { allowedHosts: OPENALEX_ALLOWED_HOSTS, maxRedirects: 2 }
-    )
+    const disease = processed.disease
+    const country = processed.country
 
-    if (!response.ok) {
-      return {
-        articles: [],
-        total: 0,
-        errorCode: response.status === 429 ? 'rate_limit' : 'upstream',
+    const select = [
+      'id',
+      'title',
+      'authorships',
+      'publication_year',
+      'host_venue',
+      'doi',
+      'open_access',
+      'cited_by_count',
+      'landing_page_url',
+      'abstract_inverted_index',
+      'relevance_score',
+      'type',
+    ].join(',')
+
+    const buildUrl = (filters: string[]) => {
+      const searchParams = new URLSearchParams()
+      searchParams.set('page', String(page))
+      searchParams.set('per-page', String(perPage))
+      searchParams.set('sort', 'relevance_score:desc')
+      searchParams.set('select', select)
+      searchParams.set('filter', filters.join(','))
+      return `https://api.openalex.org/works?${searchParams.toString()}`
+    }
+
+    const run = async (filters: string[]) => {
+      const url = buildUrl(filters)
+      const response = await fetchWithRedirectAllowlist(
+        url,
+        { next: { revalidate: 60 } },
+        { allowedHosts: OPENALEX_ALLOWED_HOSTS, maxRedirects: 2 }
+      )
+
+      if (!response.ok) {
+        return {
+          url,
+          ok: false as const,
+          errorCode: response.status === 429 ? ('rate_limit' as const) : ('upstream' as const),
+          data: null as OpenAlexWorksResponse | null,
+        }
+      }
+
+      const data = (await response.json()) as OpenAlexWorksResponse
+      return { url, ok: true as const, errorCode: undefined, data }
+    }
+
+    const mapWork = (work: OpenAlexWork): { article: ResearchArticle; relevanceScore: number } => {
+      const abstract = buildAbstractFromInvertedIndex(work.abstract_inverted_index)
+      const article: ResearchArticle = {
+        id: work.id,
+        title: work.title,
+        authors: work.authorships.slice(0, 5).map((a) => a.author.display_name),
+        year: work.publication_year,
+        venue: work.host_venue?.display_name,
+        doi: work.doi ? normalizeDoi(work.doi) : undefined,
+        url: safeHttpUrl(work.landing_page_url),
+        citedBy: work.cited_by_count,
+        openAccess: work.open_access.is_oa,
+        source: 'openAlex',
+        abstract,
+        documentType: work.type,
+      }
+      return { article, relevanceScore: typeof work.relevance_score === 'number' ? work.relevance_score : 0 }
+    }
+
+    const containsDisease = (article: Pick<ResearchArticle, 'title' | 'abstract'>, profile: DiseaseProfile) => {
+      const title = article.title || ''
+      const abstract = article.abstract || ''
+      return profile.validationRegex.test(title) || profile.validationRegex.test(abstract)
+    }
+
+    const buildAttemptFilters = (opts: {
+      requireCountryInAbstract: boolean
+      useInstitutionsCountryCode: boolean
+      useConcept: boolean
+      includeSecondaryGroups: boolean
+    }) => {
+      const common = [...baseFilters]
+      if (opts.useConcept && disease?.conceptId) common.push(`concept.id:${disease.conceptId}`)
+      if (opts.useInstitutionsCountryCode && country) common.push(`institutions.country_code:${country.countryCode}`)
+      if (opts.requireCountryInAbstract && country) common.push(`abstract.search:${country.name}`)
+      if (opts.includeSecondaryGroups) {
+        for (const group of processed.secondaryGroups) {
+          if (group.length === 0) continue
+          common.push(`abstract.search:${group.join('|')}`)
+        }
+      }
+      return common
+    }
+
+    const attempts: Array<{
+      name: string
+      requireCountryInAbstract: boolean
+      useInstitutionsCountryCode: boolean
+      useConcept: boolean
+      includeSecondaryGroups: boolean
+    }> = []
+
+    if (disease) {
+      const useConcept = Boolean(disease.conceptId)
+      const includeSecondary = processed.secondaryGroups.length > 0
+
+      // Keep the geo constraint whenever the user specified it (Indonesia, etc.).
+      if (country) {
+        attempts.push({
+          name: 'strict',
+          requireCountryInAbstract: true,
+          useInstitutionsCountryCode: false,
+          useConcept,
+          includeSecondaryGroups: includeSecondary,
+        })
+        attempts.push({
+          name: 'relax_secondary',
+          requireCountryInAbstract: true,
+          useInstitutionsCountryCode: false,
+          useConcept,
+          includeSecondaryGroups: false,
+        })
+        attempts.push({
+          name: 'geo_institution',
+          requireCountryInAbstract: false,
+          useInstitutionsCountryCode: true,
+          useConcept,
+          includeSecondaryGroups: false,
+        })
+        attempts.push({
+          name: 'relax_concept',
+          requireCountryInAbstract: true,
+          useInstitutionsCountryCode: false,
+          useConcept: false,
+          includeSecondaryGroups: false,
+        })
+        attempts.push({
+          name: 'geo_institution_no_concept',
+          requireCountryInAbstract: false,
+          useInstitutionsCountryCode: true,
+          useConcept: false,
+          includeSecondaryGroups: false,
+        })
+      } else {
+        attempts.push({
+          name: 'strict',
+          requireCountryInAbstract: false,
+          useInstitutionsCountryCode: false,
+          useConcept,
+          includeSecondaryGroups: includeSecondary,
+        })
+        attempts.push({
+          name: 'relax_secondary',
+          requireCountryInAbstract: false,
+          useInstitutionsCountryCode: false,
+          useConcept,
+          includeSecondaryGroups: false,
+        })
+        attempts.push({
+          name: 'relax_concept',
+          requireCountryInAbstract: false,
+          useInstitutionsCountryCode: false,
+          useConcept: false,
+          includeSecondaryGroups: false,
+        })
+      }
+    } else {
+      // Non-disease queries: field-specific retrieval using the cleaned keyword string.
+      attempts.push({
+        name: 'keywords',
+        requireCountryInAbstract: Boolean(country),
+        useInstitutionsCountryCode: false,
+        useConcept: false,
+        includeSecondaryGroups: false,
+      })
+
+      // Alternate geo strategy for non-disease queries when a country was specified.
+      if (country) {
+        attempts.push({
+          name: 'keywords_geo_institution',
+          requireCountryInAbstract: false,
+          useInstitutionsCountryCode: true,
+          useConcept: false,
+          includeSecondaryGroups: false,
+        })
       }
     }
 
-    const data = await response.json()
-    const articles: ResearchArticle[] = (data.results || []).map((work: OpenAlexWork) => ({
-      id: work.id,
-      title: work.title,
-      authors: work.authorships.slice(0, 5).map((a) => a.author.display_name),
-      year: work.publication_year,
-      venue: work.host_venue?.display_name,
-      doi: work.doi ? normalizeDoi(work.doi) : undefined,
-      url: safeHttpUrl(work.landing_page_url),
-      citedBy: work.cited_by_count,
-      openAccess: work.open_access.is_oa,
-      source: 'openAlex',
-    }))
+    let lastErrorCode: SourceErrorCode | undefined
 
-    return { articles, total: data.meta?.count || 0 }
+    for (const attempt of attempts) {
+      const commonFilters = buildAttemptFilters(attempt)
+
+      const keywordString = processed.translatedKeywords
+        .filter((t) => t && t.length >= 2)
+        .slice(0, 6)
+        .join(' ')
+        .trim() || processed.cleanedQuery.trim()
+
+      const fieldQueryTerm = disease?.canonical || keywordString
+      if (!fieldQueryTerm) {
+        continue
+      }
+
+      const titleFilters = [`title.search:${fieldQueryTerm}`, ...commonFilters]
+      const abstractFilters = [`abstract.search:${fieldQueryTerm}`, ...commonFilters]
+
+      const [titleRes, abstractRes] = await Promise.all([run(titleFilters), run(abstractFilters)])
+
+      const urls = [titleRes.url, abstractRes.url]
+      const titleOk = titleRes.ok
+      const abstractOk = abstractRes.ok
+
+      if (!titleOk) lastErrorCode = titleRes.errorCode
+      if (!abstractOk) lastErrorCode = abstractRes.errorCode
+
+      const titleWorks: OpenAlexWork[] = titleOk ? (titleRes.data?.results || []) : []
+      const abstractWorks: OpenAlexWork[] = abstractOk ? (abstractRes.data?.results || []) : []
+
+      const merged: Array<{ article: ResearchArticle; relevanceScore: number }> = []
+      const seen = new Set<string>()
+
+      for (const work of [...titleWorks, ...abstractWorks]) {
+        const key = work.id || work.doi || work.title
+        if (!key) continue
+        if (seen.has(key)) continue
+        seen.add(key)
+        merged.push(mapWork(work))
+      }
+
+      const validated = disease ? merged.filter(({ article }) => containsDisease(article, disease)) : merged
+      validated.sort((a, b) => b.relevanceScore - a.relevanceScore)
+
+      console.info('[ResearchFinder] OpenAlexSearch', {
+        originalQuery: processed.originalQuery,
+        cleanedQuery: processed.cleanedQuery,
+        extractedKeywords: processed.extractedKeywords,
+        translatedKeywords: processed.translatedKeywords,
+        attempt: attempt.name,
+        urls,
+        resultsReturned: validated.length,
+      })
+
+      if (validated.length > 0) {
+        const totalEstimate = Math.max(
+          titleOk ? (titleRes.data?.meta?.count || 0) : 0,
+          abstractOk ? (abstractRes.data?.meta?.count || 0) : 0
+        )
+        return { articles: validated.map(({ article }) => article), total: totalEstimate }
+      }
+    }
+
+    // If OpenAlex responded with errors for all attempts, surface it as an upstream issue.
+    if (lastErrorCode) {
+      return { articles: [], total: 0, errorCode: lastErrorCode }
+    }
+
+    return { articles: [], total: 0 }
   } catch (error) {
     console.error('[ResearchFinder] OpenAlex fetch error:', error)
     return { articles: [], total: 0, errorCode: 'network' }
@@ -308,6 +786,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { yearFrom, yearTo } = mergeYearBound(uiYearFrom, uiYearTo, query.yearFrom, query.yearTo)
+    const processedForOpenAlex = processQueryForOpenAlex(rawQuery, parsedSyntax.cleanedQuery, parsedSyntax.phrases)
 
     const cacheKey = `${query.effectiveQuery}:${page}:${perPage}:${yearFrom}:${yearTo}:${oaOnly}:${sort}:${sortDir}:${documentType}:${language}`
     const cached = searchCache.get(cacheKey)
@@ -316,7 +795,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [openAlexResult, crossrefResult] = await Promise.all([
-      fetchOpenAlex(query.effectiveQuery, page, perPage, yearFrom, yearTo, oaOnly, documentType),
+      fetchOpenAlex(processedForOpenAlex, page, perPage, yearFrom, yearTo, oaOnly, documentType),
       fetchCrossref(query.effectiveQuery, page, perPage, yearFrom, yearTo),
     ])
 
@@ -344,6 +823,25 @@ export async function GET(request: NextRequest) {
 
     let combined = [...openAlexResult.articles, ...crossrefResult.articles]
 
+    // Strict result validation for disease-focused queries: never surface results that
+    // don't explicitly mention the primary disease term in title or abstract.
+    if (processedForOpenAlex.disease) {
+      const diseaseRe = processedForOpenAlex.disease.validationRegex
+      combined = combined.filter((article) => diseaseRe.test(article.title) || diseaseRe.test(article.abstract || ''))
+    }
+
+    // Crossref does not provide reliable affiliations/geo metadata here; avoid polluting
+    // geo-scoped queries with unrelated global studies.
+    if (processedForOpenAlex.country) {
+      const countryNeedle = processedForOpenAlex.country.name.toLowerCase()
+      combined = combined.filter((article) => {
+        if (article.source !== 'crossref') return true
+        const title = normalizeText(article.title)
+        const abstract = normalizeText(article.abstract || '')
+        return title.includes(countryNeedle) || abstract.includes(countryNeedle)
+      })
+    }
+
     if (query.author) {
       const authorNeedle = normalizeText(query.author)
       combined = combined.filter((article) => normalizeText(article.authors.join(' ')).includes(authorNeedle))
@@ -368,7 +866,10 @@ export async function GET(request: NextRequest) {
     // Each upstream source is already paginated by `page`/`perPage`. After merging/deduping/sorting,
     // return up to `perPage` articles for this page.
     const paginatedArticles = combined.slice(0, perPage)
-    const totalEstimate = openAlexResult.total + crossrefResult.total
+    const totalEstimate =
+      processedForOpenAlex.disease || processedForOpenAlex.country
+        ? openAlexResult.total || paginatedArticles.length
+        : openAlexResult.total + crossrefResult.total
     const response: SearchResponse = {
       articles: paginatedArticles,
       total: totalEstimate,
