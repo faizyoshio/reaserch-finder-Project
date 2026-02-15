@@ -12,7 +12,7 @@ export function TopBar() {
   return (
     <header className="top-0 z-50 glass-strong rounded-b-2xl mx-2 mt-2 sm:mx-4 sm:mt-3">
       <nav className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-        {/* Logo / Brand */}
+        {/* */}
         <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg glass-button flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
@@ -27,7 +27,7 @@ export function TopBar() {
           </span>
         </Link>
 
-        {/* Navigation Links & Actions */}
+        {/* */}
         <div className="flex items-center gap-2 sm:gap-4">
           <Link
             href="/saved"
@@ -43,7 +43,7 @@ export function TopBar() {
             <span className="sm:hidden">Saved</span>
           </Link>
 
-          {/* Theme Toggle */}
+          {/* */}
           <ThemeToggle />
         </div>
       </nav>

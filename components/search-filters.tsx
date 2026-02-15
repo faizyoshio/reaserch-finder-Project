@@ -39,7 +39,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
   return (
     <div className="glass rounded-2xl p-4 sm:p-6 mb-6">
       <div className="space-y-4">
-        {/* Open Access Filter */}
+        {/* */}
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium text-foreground">Open Access</label>
           <button
@@ -56,7 +56,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
           </button>
         </div>
 
-        {/* Document Type Filter */}
+        {/* */}
         <div>
           <label className="text-sm font-medium text-foreground block mb-2">
             Document Type
@@ -84,7 +84,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
           </div>
         </div>
 
-        {/* Language Filter */}
+        {/* */}
         <div>
           <label className="text-sm font-medium text-foreground block mb-2">
             Language
@@ -112,9 +112,9 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
           </div>
         </div>
 
-        {/* Year Filter */}
+        {/* */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {/* Year From */}
+          {/* */}
           <div>
             <label className="text-xs sm:text-sm font-medium text-foreground/70 block mb-2">
               From
@@ -139,7 +139,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
             </select>
           </div>
 
-          {/* Year To */}
+          {/* */}
           <div>
             <label className="text-xs sm:text-sm font-medium text-foreground/70 block mb-2">
               To
@@ -165,7 +165,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
           </div>
         </div>
 
-        {/* Sort Options */}
+        {/* */}
         <div>
           <label className="text-sm font-medium text-foreground block mb-2">
             Sort
@@ -192,7 +192,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
           </div>
         </div>
 
-        {/* Reset Filters */}
+        {/* */}
         {(params.yearFrom || params.yearTo || params.oaOnly || params.documentType || params.language || params.sort !== 'relevance') && (
           <button
             onClick={() =>

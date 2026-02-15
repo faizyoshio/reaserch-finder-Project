@@ -6,6 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
+    "audit:search": "node scripts/search-audit.mjs",
     "start": "next start"
   },
   "dependencies": {

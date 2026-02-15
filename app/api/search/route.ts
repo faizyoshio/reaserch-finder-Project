@@ -309,6 +309,13 @@ function normalizeDoi(doi: string): string {
     .replace(/^doi:/, '')
 }
 
+function isProbablyDoi(doi: string): boolean {
+  if (!doi) return false
+  if (doi.length > 200) return false
+  if (/[\r\n\t]/.test(doi)) return false
+  return /^10\.\d{4,9}\/[-._;()/:A-Z0-9]+$/i.test(doi)
+}
+
 function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
 }
@@ -377,6 +384,38 @@ function inferRelevanceReasons(article: ResearchArticle, parsed: ParsedRequestQu
   return reasons.slice(0, 3)
 }
 
+function buildOpenAlexBaseFilters(opts: {
+  yearFrom?: number
+  yearTo?: number
+  oaOnly?: boolean
+  documentType?: string
+  language?: string
+}): string[] {
+  const filters: string[] = []
+  const { yearFrom, yearTo, oaOnly, documentType, language } = opts
+
+  if (yearFrom) filters.push(`publication_year:>=${yearFrom}`)
+  if (yearTo) filters.push(`publication_year:<=${yearTo}`)
+  if (oaOnly) filters.push('open_access.is_oa:true')
+
+  if (documentType) {
+    const typeMap: Record<string, string> = {
+      journal: 'journal-article',
+      conference: 'proceedings-article',
+      preprint: 'preprint',
+      book: 'book',
+    }
+    const mapped = typeMap[documentType]
+    if (mapped) filters.push(`type:${mapped}`)
+  }
+
+  if (language && /^[a-z]{2}$/i.test(language)) {
+    filters.push(`language:${language.toLowerCase()}`)
+  }
+
+  return filters
+}
+
 async function fetchOpenAlex(
   processed: ProcessedQuery,
   page: number,
@@ -384,23 +423,11 @@ async function fetchOpenAlex(
   yearFrom?: number,
   yearTo?: number,
   oaOnly?: boolean,
-  documentType?: string
+  documentType?: string,
+  language?: string
 ): Promise<SourceResult> {
   try {
-    const baseFilters: string[] = []
-    if (yearFrom) baseFilters.push(`publication_year:>=${yearFrom}`)
-    if (yearTo) baseFilters.push(`publication_year:<=${yearTo}`)
-    if (oaOnly) baseFilters.push('open_access.is_oa:true')
-    if (documentType) {
-      const typeMap: Record<string, string> = {
-        journal: 'journal-article',
-        conference: 'proceedings-article',
-        preprint: 'preprint',
-        book: 'book',
-      }
-      const mapped = typeMap[documentType]
-      if (mapped) baseFilters.push(`type:${mapped}`)
-    }
+    const baseFilters = buildOpenAlexBaseFilters({ yearFrom, yearTo, oaOnly, documentType, language })
 
     const disease = processed.disease
     const country = processed.country
@@ -665,6 +692,121 @@ async function fetchOpenAlex(
   }
 }
 
+async function fetchOpenAlexAdvanced(
+  fields: { author?: string; title?: string; doi?: string; affiliation?: string },
+  page: number,
+  perPage: number,
+  opts: { yearFrom?: number; yearTo?: number; oaOnly?: boolean; documentType?: string; language?: string }
+): Promise<SourceResult & { url?: string; filter?: string }> {
+  try {
+    const author = fields.author?.trim() || ''
+    const title = fields.title?.trim() || ''
+    const affiliation = fields.affiliation?.trim() || ''
+    const doiRaw = fields.doi?.trim() || ''
+    const doi = doiRaw ? normalizeDoi(doiRaw) : ''
+
+    const filterParts: string[] = []
+    if (author) filterParts.push(`raw_author_name.search:${author}`)
+    if (title) filterParts.push(`title.search:${title}`)
+    if (affiliation) filterParts.push(`raw_affiliation_strings.search:${affiliation}`)
+    if (doi) filterParts.push(`doi:${doi}`)
+
+    const baseFilters = buildOpenAlexBaseFilters(opts)
+    const combinedFilters = [...filterParts, ...baseFilters]
+
+    const select = [
+      'id',
+      'title',
+      'authorships',
+      'publication_year',
+      'host_venue',
+      'doi',
+      'open_access',
+      'cited_by_count',
+      'landing_page_url',
+      'abstract_inverted_index',
+      'relevance_score',
+      'type',
+    ].join(',')
+
+    const hasSearchFilter = Boolean(author || title || affiliation)
+    // OpenAlex only supports relevance_score sorting when there is a search query (e.g. *.search filters).
+    const sort = hasSearchFilter ? 'relevance_score:desc' : 'publication_year:desc'
+
+    const requestPage = doi ? 1 : page
+    const requestPerPage = doi ? 1 : perPage
+
+    const searchParams = new URLSearchParams()
+    searchParams.set('page', String(requestPage))
+    searchParams.set('per-page', String(requestPerPage))
+    searchParams.set('select', select)
+    searchParams.set('sort', sort)
+    searchParams.set('filter', combinedFilters.join(','))
+    const url = `https://api.openalex.org/works?${searchParams.toString()}`
+
+    const response = await fetchWithRedirectAllowlist(
+      url,
+      { next: { revalidate: 60 } },
+      { allowedHosts: OPENALEX_ALLOWED_HOSTS, maxRedirects: 2 }
+    )
+
+    if (!response.ok) {
+      return {
+        articles: [],
+        total: 0,
+        errorCode: response.status === 429 ? 'rate_limit' : 'upstream',
+        url,
+        filter: combinedFilters.join(','),
+      }
+    }
+
+    const data = (await response.json()) as OpenAlexWorksResponse
+    const works = data.results || []
+
+    const articles = works.map((work) => {
+      const abstract = buildAbstractFromInvertedIndex(work.abstract_inverted_index)
+      const article: ResearchArticle = {
+        id: work.id,
+        title: work.title,
+        authors: work.authorships.slice(0, 5).map((a) => a.author.display_name),
+        year: work.publication_year,
+        venue: work.host_venue?.display_name,
+        doi: work.doi ? normalizeDoi(work.doi) : undefined,
+        url: safeHttpUrl(work.landing_page_url),
+        citedBy: work.cited_by_count,
+        openAccess: work.open_access.is_oa,
+        source: 'openAlex',
+        abstract,
+        documentType: work.type,
+      }
+
+      return article
+    })
+
+    const validated = doi ? articles.filter((a) => (a.doi || '').toLowerCase() === doi.toLowerCase()) : articles
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[ResearchFinder] OpenAlexAdvancedSearch', {
+        mode: 'advanced',
+        fields: { author, title, affiliation, doi: doi || undefined },
+        filter: combinedFilters.join(','),
+        url,
+        resultsReturned: validated.length,
+      })
+    }
+
+    return {
+      articles: validated,
+      total: data.meta?.count || validated.length,
+      url,
+      filter: combinedFilters.join(','),
+    }
+  } catch (error) {
+    console.error('[ResearchFinder] OpenAlex advanced fetch error:', error)
+    return { articles: [], total: 0, errorCode: 'network' }
+  }
+}
+
 async function fetchCrossref(
   query: string,
   page: number,
@@ -751,6 +893,127 @@ export async function GET(request: NextRequest) {
     const documentType = searchParams.get('documentType') || undefined
     const language = searchParams.get('language') || undefined
 
+    const modeParam = (searchParams.get('mode') || '').toLowerCase()
+    const advancedFields = {
+      author: searchParams.get('author')?.trim() || '',
+      title: searchParams.get('title')?.trim() || '',
+      doi: searchParams.get('doi')?.trim() || '',
+      affiliation: searchParams.get('affiliation')?.trim() || '',
+    }
+    const isAdvanced =
+      modeParam === 'advanced' ||
+      Boolean(advancedFields.author || advancedFields.title || advancedFields.doi || advancedFields.affiliation)
+
+    if (isAdvanced) {
+      if (
+        !advancedFields.author &&
+        !advancedFields.title &&
+        !advancedFields.doi &&
+        !advancedFields.affiliation
+      ) {
+        return json({ error: 'Enter at least one advanced field.', code: 'ADVANCED_EMPTY' }, { status: 400 })
+      }
+
+      const MAX_FIELD = 300
+      for (const [key, value] of Object.entries(advancedFields)) {
+        if (value.length > MAX_FIELD) {
+          return json({ error: `Advanced field too long: ${key}`, code: 'ADVANCED_FIELD_TOO_LONG' }, { status: 400 })
+        }
+      }
+
+      const normalizedDoi = advancedFields.doi ? normalizeDoi(advancedFields.doi) : ''
+      if (advancedFields.doi && !isProbablyDoi(normalizedDoi)) {
+        return json({ error: 'Invalid DOI format.', code: 'INVALID_DOI' }, { status: 400 })
+      }
+
+      const effectivePage = normalizedDoi ? 1 : page
+      const effectivePerPage = normalizedDoi ? 1 : perPage
+
+      const cacheKey = `advanced:${advancedFields.author}:${advancedFields.title}:${normalizedDoi}:${advancedFields.affiliation}:${effectivePage}:${effectivePerPage}:${uiYearFrom}:${uiYearTo}:${oaOnly}:${sort}:${sortDir}:${documentType}:${language}`
+      const cached = searchCache.get(cacheKey)
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return json(cached.data)
+      }
+
+      const openAlexResult = await fetchOpenAlexAdvanced(
+        {
+          author: advancedFields.author || undefined,
+          title: advancedFields.title || undefined,
+          doi: normalizedDoi || undefined,
+          affiliation: advancedFields.affiliation || undefined,
+        },
+        effectivePage,
+        effectivePerPage,
+        { yearFrom: uiYearFrom, yearTo: uiYearTo, oaOnly, documentType, language }
+      )
+
+      if (openAlexResult.articles.length === 0 && openAlexResult.errorCode) {
+        const isRateLimited = openAlexResult.errorCode === 'rate_limit'
+        return json(
+          {
+            error: isRateLimited
+              ? 'Search sources are rate-limited. Please wait a moment and retry.'
+              : 'Search sources are temporarily unavailable. Please retry shortly.',
+            code: isRateLimited ? 'RATE_LIMITED' : 'UPSTREAM_UNAVAILABLE',
+          },
+          { status: isRateLimited ? 429 : 503 }
+        )
+      }
+
+      let combined = [...openAlexResult.articles]
+      if (oaOnly) combined = combined.filter((article) => article.openAccess)
+      combined = deduplicateArticles(combined)
+
+      // Author exact match boosting (only in relevance mode).
+      if (sort === 'relevance' && advancedFields.author) {
+        const needle = normalizeText(advancedFields.author)
+        const scored = combined.map((article, idx) => ({
+          article,
+          idx,
+          exact: article.authors.some((a) => normalizeText(a) === needle) ? 1 : 0,
+        }))
+        scored.sort((a, b) => b.exact - a.exact || a.idx - b.idx)
+        combined = scored.map((s) => s.article)
+      }
+
+      const pseudoQuery: ParsedRequestQuery = {
+        effectiveQuery: [advancedFields.title, advancedFields.author, advancedFields.affiliation, normalizedDoi]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim(),
+        author: advancedFields.author || undefined,
+        yearFrom: uiYearFrom,
+        yearTo: uiYearTo,
+        phrases: [],
+      }
+
+      combined = combined.map((article) => ({ ...article, relevanceReasons: inferRelevanceReasons(article, pseudoQuery, oaOnly) }))
+      combined = sortArticles(combined, sort)
+      if (sortDir === 'asc' && (sort === 'year' || sort === 'citedBy')) {
+        combined.reverse()
+      }
+
+      const paginatedArticles = combined.slice(0, effectivePerPage)
+      const totalEstimate = openAlexResult.total || paginatedArticles.length
+
+      const response: SearchResponse = {
+        articles: paginatedArticles,
+        total: totalEstimate,
+        page: effectivePage,
+        perPage: effectivePerPage,
+        hasMore: totalEstimate > effectivePage * effectivePerPage,
+      }
+
+      searchCache.set(cacheKey, { data: response, timestamp: Date.now() })
+      if (searchCache.size > 100) {
+        const oldest = Array.from(searchCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp)[0]
+        searchCache.delete(oldest[0])
+      }
+
+      return json(response)
+    }
+
     if (!rawQuery) {
       return json({ error: 'Please enter a search query.', code: 'EMPTY_QUERY' }, { status: 400 })
     }
@@ -795,7 +1058,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [openAlexResult, crossrefResult] = await Promise.all([
-      fetchOpenAlex(processedForOpenAlex, page, perPage, yearFrom, yearTo, oaOnly, documentType),
+      fetchOpenAlex(processedForOpenAlex, page, perPage, yearFrom, yearTo, oaOnly, documentType, language),
       fetchCrossref(query.effectiveQuery, page, perPage, yearFrom, yearTo),
     ])
 

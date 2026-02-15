@@ -49,7 +49,7 @@ export function SearchStats({ results }: Props) {
       </div>
 
       <div className="flex gap-4 items-center">
-        {/* Simple SVG bar chart */}
+        {/* */}
         <svg width={220} height={48} viewBox={`0 0 220 48`} className="shrink-0">
           {series.map((s, i) => {
             const w = 16
@@ -66,7 +66,7 @@ export function SearchStats({ results }: Props) {
           })}
         </svg>
 
-        {/* Top venues */}
+        {/* */}
         <div className="flex-1">
           <div className="text-xs text-foreground/60 mb-1">Top venues</div>
           <div className="flex flex-wrap gap-2">

@@ -85,7 +85,7 @@ export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
         )}
       </div>
 
-      {/* Suggestions + Recent Searches */}
+      {/* */}
       {showSuggestions && (suggestions?.length ?? 0) > 0 && (
         <div className="absolute left-0 right-0 mt-2 glass rounded-xl p-2 z-40">
           <div className="text-xs text-foreground/60 mb-2 px-2">Recent searches</div>
@@ -99,7 +99,7 @@ export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
         </div>
       )}
 
-      {/* Validation Message */}
+      {/* */}
       {value && !validation.isValidSearchQuery(value) && (
         <div className="mt-2 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />

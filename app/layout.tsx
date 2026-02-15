@@ -54,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Prevent theme flash by applying stored theme class early */}
+        {/* */}
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function(){try{var k='researchfinder-theme';var v=localStorage.getItem(k);var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var shouldDark=(v==='dark')||(v==='system'&&prefersDark)||(!v&&prefersDark);document.documentElement.classList.toggle('dark',shouldDark);}catch(e){}})();`}
         </Script>

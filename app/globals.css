@@ -2,9 +2,7 @@
 @import 'tw-animate-css';
 
 :root {
-  /* ============================================
-     iOS 26 COLOR PALETTE - Vibrant & Modern
-     ============================================ */
+  /* */
   --background: #f5f5f7;
   --foreground: #000000;
   --card: #ffffff;
@@ -12,42 +10,42 @@
   --popover: #ffffff;
   --popover-foreground: #000000;
   
-  /* iOS 26 - Vibrant Primary (System Blue) */
+  /* */
   --primary: #007aff;
   --primary-foreground: #ffffff;
   
-  /* Secondary (System Gray) */
+  /* */
   --secondary: #e5e5ea;
   --secondary-foreground: #000000;
   
-  /* Muted */
+  /* */
   --muted: #f2f2f7;
   --muted-foreground: #8e8e93;
   
-  /* Accent (Teal - for highlights) */
+  /* */
   --accent: #34c759;
   --accent-foreground: #ffffff;
   
-  /* Destructive (System Red) */
+  /* */
   --destructive: #ff3b30;
   --destructive-foreground: #ffffff;
   
-  /* Borders & Inputs */
+  /* */
   --border: #e5e5ea;
   --input: #f2f2f7;
   --ring: #007aff;
   
-  /* Chart colors - iOS-inspired gradients */
+  /* */
   --chart-1: #007aff;
   --chart-2: #34c759;
   --chart-3: #5ac8fa;
   --chart-4: #ff9500;
   --chart-5: #ff2d55;
   
-  /* Radius - iOS style rounded corners */
+  /* */
   --radius: 0.875rem;
   
-  /* Sidebar */
+  /* */
   --sidebar: #ffffff;
   --sidebar-foreground: #000000;
   --sidebar-primary: #007aff;
@@ -57,9 +55,7 @@
   --sidebar-border: #e5e5ea;
   --sidebar-ring: #007aff;
 
-  /* ============================================
-     RESPONSIVE SPACING (8px baseline)
-     ============================================ */
+  /* */
   --space: 8px;
   --space-xs: clamp(0.25rem, 1vw, 0.5rem);
   --space-sm: clamp(0.5rem, 1.5vw, 1rem);
@@ -67,33 +63,29 @@
   --space-lg: clamp(1.5rem, 3vw, 2rem);
   --space-xl: clamp(2rem, 4vw, 3rem);
 
-  /* Responsive radius */
+  /* */
   --radius-sm: clamp(0.5rem, 1vw, 0.875rem);
   --radius-md: clamp(0.875rem, 1.5vw, 1.125rem);
   --radius-lg: clamp(1.125rem, 2vw, 1.5rem);
 
-  /* ============================================
-     LIQUID GLASS SHADOWS & EFFECTS
-     ============================================ */
-  /* Soft diffused shadows for depth */
+  /* */
+  /* */
   --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
   --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.16);
   
-  /* Soft glow effects for interactive elements */
+  /* */
   --glow-sm: 0 0 12px rgba(0, 122, 255, 0.15);
   --glow-md: 0 0 20px rgba(0, 122, 255, 0.2);
   --glow-lg: 0 0 32px rgba(0, 122, 255, 0.25);
 
-  /* Glass effect borders */
+  /* */
   --glass-border: rgba(255, 255, 255, 0.4);
   --glass-border-dark: rgba(0, 0, 0, 0.1);
 
-  /* ============================================
-     iOS DESIGN TOKENS
-     ============================================ */
+  /* */
   --ios-bg: #f5f5f7;
   --ios-bg-secondary: #ffffff;
   --ios-card: #ffffff;
@@ -102,8 +94,7 @@
   --ios-accent-foreground: #ffffff;
 }
 
-/* Theme transition helper: add `.theme-transition` to `document.documentElement` before toggling
-   to enable smooth color/background transitions. Respects prefers-reduced-motion. */
+/* */
 .theme-transition *,
 .theme-transition *::before,
 .theme-transition *::after {
@@ -156,9 +147,7 @@
 }
 
 @layer base {
-  /* ============================================
-     TYPOGRAPHY - iOS 26 STYLE
-     ============================================ */
+  /* */
   h1 {
     font-size: clamp(1.6rem, 5.5vw, 2.75rem);
     line-height: 1.1;
@@ -211,10 +200,8 @@
     scroll-behavior: smooth;
   }
 
-  /* ============================================
-     iOS 26 LIQUID GLASS COMPONENTS
-     ============================================ */
-  /* Core glass effect with multiple layers */
+  /* */
+  /* */
   .glass {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px) saturate(1.4);
@@ -236,7 +223,7 @@
     border-color: var(--glass-border);
   }
 
-  /* Glass effect with more blur (strong) */
+  /* */
   .glass-strong {
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(50px) saturate(1.5);
@@ -259,7 +246,7 @@
       var(--glow-sm);
   }
 
-  /* Glass hover effect */
+  /* */
   .glass-hover {
     transition: all 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
@@ -270,7 +257,7 @@
     border-color: var(--primary);
   }
 
-  /* Responsive glass button - iOS style */
+  /* */
   .glass-button {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
     border: 1.5px solid var(--glass-border);
@@ -327,7 +314,7 @@
       0 0 0 4px rgba(0, 122, 255, 0.2);
   }
 
-  /* Responsive glass input field */
+  /* */
   .glass-input {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
     border-radius: 999px;
@@ -352,7 +339,7 @@
     border-color: rgba(255, 255, 255, 0.15);
   }
 
-  /* Ensure native select dropdown text stays readable in both themes */
+  /* */
   select.glass-input option {
     color: #111827;
     background-color: #ffffff;
@@ -377,7 +364,7 @@
     border-color: rgba(0, 168, 255, 0.7);
   }
 
-  /* Responsive glass badge */
+  /* */
   .glass-badge {
     background: linear-gradient(135deg, rgba(0, 122, 255, 0.1) 0%, rgba(52, 199, 89, 0.1) 100%);
     border: 1px solid rgba(0, 122, 255, 0.2);
@@ -397,7 +384,7 @@
     background: linear-gradient(135deg, rgba(0, 122, 255, 0.2) 0%, rgba(52, 199, 89, 0.2) 100%);
   }
 
-  /* Extra frosted variant */
+  /* */
   .glass-frosted {
     background: rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(55px) saturate(1.6) brightness(1.1);
@@ -425,9 +412,7 @@
     margin-top: var(--space-lg);
   }
 
-  /* ============================================
-     SMOOTH ANIMATIONS - iOS 26 MICRO-INTERACTIONS
-     ============================================ */
+  /* */
   @keyframes slideIn {
     from {
       opacity: 0;
@@ -567,7 +552,7 @@
     animation: float 3s ease-in-out infinite;
   }
 
-  /* Result card hover effect */
+  /* */
   .result-card {
     position: relative;
     overflow: hidden;
@@ -598,7 +583,7 @@
     transform: translateX(4px);
   }
 
-  /* Skeleton loading animation */
+  /* */
   .skeleton {
     background: linear-gradient(90deg, var(--muted) 25%, var(--muted) 50%, var(--muted) 75%, var(--muted));
     background-size: 1000px 100%;
@@ -611,7 +596,7 @@
     animation: skeleton-loading 2s infinite;
   }
 
-  /* Toast notification glass style */
+  /* */
   .toast-container {
     position: fixed;
     bottom: var(--space-lg);
@@ -634,9 +619,7 @@
     background: rgba(28, 28, 30, 0.9);
   }
 
-  /* ============================================
-     GLOBAL ICON SIZING - RESPONSIVE
-     ============================================ */
+  /* */
   svg {
     display: inline-block;
     vertical-align: middle;
@@ -668,9 +651,7 @@
     height: clamp(2rem, 6vw, 2.5rem);
   }
 
-  /* ============================================
-     MOBILE (< 640px)
-     ============================================ */
+  /* */
   @media (max-width: 639px) {
     main {
       padding: var(--space-sm);
@@ -700,7 +681,7 @@
       justify-content: center;
     }
 
-    /* Mobile-optimized grid */
+    /* */
     .filter-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -711,16 +692,14 @@
       margin-top: var(--space-md);
     }
 
-    /* Touch targets - min 44px */
+    /* */
     button, a[role="button"] {
       min-height: 44px;
       min-width: 44px;
     }
   }
 
-  /* ============================================
-     TABLET PORTRAIT (640px - 768px)
-     ============================================ */
+  /* */
   @media (min-width: 640px) and (max-width: 767px) {
     main {
       padding: var(--space-md);
@@ -752,7 +731,7 @@
       margin-top: var(--space-lg);
     }
 
-    /* Icon visibility on tablet portrait */
+    /* */
     svg {
       color: inherit;
       opacity: 1;
@@ -769,9 +748,7 @@
     }
   }
 
-  /* ============================================
-     TABLET LANDSCAPE / SMALL DESKTOP (768px - 1024px)
-     ============================================ */
+  /* */
   @media (min-width: 768px) and (max-width: 1023px) {
     main {
       padding: var(--space-lg);
@@ -807,7 +784,7 @@
       margin-top: var(--space-xl);
     }
 
-    /* Layout for sidebar + content */
+    /* */
     .main-layout {
       display: flex;
       gap: var(--space-lg);
@@ -823,7 +800,7 @@
       min-width: 0;
     }
 
-    /* Icon visibility on tablet landscape */
+    /* */
     svg {
       color: inherit;
       opacity: 1;
@@ -840,9 +817,7 @@
     }
   }
 
-  /* ============================================
-     DESKTOP (1024px - 1280px)
-     ============================================ */
+  /* */
   @media (min-width: 1024px) and (max-width: 1279px) {
     main {
       padding: var(--space-lg);
@@ -888,7 +863,7 @@
       margin-top: var(--space-xl);
     }
 
-    /* Icon visibility on desktop */
+    /* */
     svg {
       color: inherit;
       opacity: 1;
@@ -925,9 +900,7 @@
     }
   }
 
-  /* ============================================
-     LARGE DESKTOP (≥ 1280px)
-     ============================================ */
+  /* */
   @media (min-width: 1280px) {
     main {
       padding: var(--space-xl);
@@ -983,7 +956,7 @@
       box-shadow: var(--shadow-lg);
     }
 
-    /* Icon visibility on large desktop */
+    /* */
     svg {
       color: inherit;
       opacity: 1;
@@ -1020,9 +993,7 @@
     }
   }
 
-  /* ============================================
-     PRINT STYLES
-     ============================================ */
+  /* */
   @media print {
     main {
       padding: 0;
@@ -1044,9 +1015,7 @@
     }
   }
 
-  /* ============================================
-     LANDSCAPE MODE (any device height < 500px)
-     ============================================ */
+  /* */
   @media (max-height: 500px) and (orientation: landscape) {
     main {
       padding: var(--space-sm);
@@ -1066,9 +1035,7 @@
     }
   }
 
-  /* ============================================
-     ACCESSIBILITY & REDUCED MOTION
-     ============================================ */
+  /* */
   @media (prefers-reduced-motion: reduce) {
     * {
       animation-duration: 0.01ms !important;
@@ -1077,7 +1044,7 @@
     }
   }
 
-  /* High contrast mode support */
+  /* */
   @media (prefers-contrast: more) {
     .glass-button,
     .glass-input,
@@ -1086,7 +1053,7 @@
     }
   }
 
-  /* Dark mode - battery saver */
+  /* */
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;

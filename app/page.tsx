@@ -7,6 +7,7 @@ import RouteLoading from './loading'
 import { TopBar } from '@/components/top-bar'
 import { Footer } from '@/components/footer'
 import { SearchInput } from '@/components/search-input'
+import { AdvancedSearchInput, type AdvancedSearchFields } from '@/components/advanced-search-input'
 import { SearchFilters } from '@/components/search-filters'
 import { ResultCard } from '@/components/result-card'
 import { SearchStats } from '@/components/search-stats'
@@ -20,6 +21,35 @@ import { validation, safeHttpUrl } from '@/lib/utils'
 
 type QuickPreset = 'oa' | 'recent5' | 'cited' | 'journal'
 const LAST_PRESET_KEY = 'researchfinder-last-quick-preset'
+type SearchMode = 'basic' | 'advanced'
+
+type SearchRequest =
+  | { mode: 'basic'; q: string }
+  | { mode: 'advanced'; fields: AdvancedSearchFields }
+
+function normalizeDoiInput(doi: string): string {
+  return doi
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
+    .replace(/^doi:/i, '')
+}
+
+function isProbablyDoiInput(doi: string): boolean {
+  if (!doi) return false
+  if (doi.length > 200) return false
+  if (/[\r\n\t]/.test(doi)) return false
+  return /^10\.\d{4,9}\/[-._;()/:A-Z0-9]+$/i.test(doi)
+}
+
+function hasAnyAdvancedField(fields: AdvancedSearchFields): boolean {
+  return Boolean(fields.author.trim() || fields.title.trim() || fields.doi.trim() || fields.affiliation.trim())
+}
+
+function buildAdvancedDisplayQuery(fields: AdvancedSearchFields): string {
+  const parts = [fields.title, fields.author, fields.affiliation, fields.doi].map((p) => (p || '').trim()).filter(Boolean)
+  return parts.join(' ').replace(/\s+/g, ' ').trim()
+}
 
 function HomeContent() {
   const router = useRouter()
@@ -27,9 +57,50 @@ function HomeContent() {
   const { toast } = useToast()
 
   // Search state
+  const initialUrlRef = React.useRef<{
+    advancedFields: AdvancedSearchFields
+    mode: SearchMode
+    q: string
+  } | null>(null)
+
+  if (!initialUrlRef.current) {
+    const advanced: AdvancedSearchFields = {
+      author: searchParams.get('author') || '',
+      title: searchParams.get('title') || '',
+      doi: searchParams.get('doi') || '',
+      affiliation: searchParams.get('affiliation') || '',
+    }
+
+    const modeParam = (searchParams.get('mode') || '').toLowerCase()
+    const mode: SearchMode = modeParam === 'advanced' || hasAnyAdvancedField(advanced) ? 'advanced' : 'basic'
+
+    initialUrlRef.current = {
+      advancedFields: advanced,
+      mode,
+      q: searchParams.get('q') || '',
+    }
+  }
+
+  const initialAdvancedFields = initialUrlRef.current.advancedFields
+  const initialMode = initialUrlRef.current.mode
+  const initialQ = initialUrlRef.current.q
+
+  const [searchMode, setSearchMode] = useState<SearchMode>(initialMode)
+  const [advancedFields, setAdvancedFields] = useState<AdvancedSearchFields>(initialAdvancedFields)
+  const [lastRequest, setLastRequest] = useState<SearchRequest | null>(() => {
+    if (initialMode === 'advanced' && hasAnyAdvancedField(initialAdvancedFields)) {
+      return { mode: 'advanced', fields: initialAdvancedFields }
+    }
+    if (initialQ) {
+      return { mode: 'basic', q: initialQ }
+    }
+    return null
+  })
+  const [doiError, setDoiError] = useState<string | null>(null)
+
   const [query, setQuery] = useState('')
   const [params, setParams] = useState<SearchParams>({
-    q: searchParams.get('q') || '',
+    q: initialQ,
     page: parseInt(searchParams.get('page') || '1'),
     perPage: 25,
     yearFrom: searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!) : undefined,
@@ -113,34 +184,79 @@ function HomeContent() {
 
   // Perform search
   const performSearch = React.useCallback(
-    async (searchQuery: string, searchParams: SearchParams) => {
-      if (!validation.isValidSearchQuery(searchQuery)) {
-        setStatusMessage(validation.getValidationMessage(searchQuery))
-        toast({
-          title: 'Warning',
-          description: validation.getValidationMessage(searchQuery),
-          variant: 'destructive',
-        })
-        return
+    async (request: SearchRequest, searchParams: SearchParams) => {
+      let displayQuery = ''
+
+      if (request.mode === 'basic') {
+        displayQuery = request.q
+        if (!validation.isValidSearchQuery(displayQuery)) {
+          const message = validation.getValidationMessage(displayQuery)
+          setStatusMessage(message)
+          toast({
+            title: 'Warning',
+            description: message,
+            variant: 'destructive',
+          })
+          return
+        }
+      } else {
+        displayQuery = buildAdvancedDisplayQuery(request.fields)
+        if (!hasAnyAdvancedField(request.fields)) {
+          const message = 'Enter at least one advanced field.'
+          setStatusMessage(message)
+          toast({
+            title: 'Warning',
+            description: message,
+            variant: 'destructive',
+          })
+          return
+        }
+
+        if (request.fields.doi.trim()) {
+          const normalized = normalizeDoiInput(request.fields.doi)
+          if (!isProbablyDoiInput(normalized)) {
+            const message = 'Invalid DOI format.'
+            setDoiError('Invalid DOI format. Example: 10.1234/abcd')
+            setStatusMessage(message)
+            toast({
+              title: 'Warning',
+              description: message,
+              variant: 'destructive',
+            })
+            return
+          }
+        }
+
+        setDoiError(null)
       }
 
+      setLastRequest(request)
       setLoading(true)
       setShowIntro(false)
       setHasSearched(true)
 
       try {
-        const queryString = new URLSearchParams({
-          q: searchQuery,
-          page: searchParams.page.toString(),
-          perPage: searchParams.perPage.toString(),
-          oaOnly: searchParams.oaOnly.toString(),
-          sort: searchParams.sort,
-          ...(searchParams.sortDir && { sortDir: searchParams.sortDir }),
-          ...(searchParams.yearFrom && { yearFrom: searchParams.yearFrom.toString() }),
-          ...(searchParams.yearTo && { yearTo: searchParams.yearTo.toString() }),
-          ...(searchParams.documentType && { documentType: searchParams.documentType }),
-          ...(searchParams.language && { language: searchParams.language }),
-        })
+        const queryString = new URLSearchParams()
+        queryString.set('page', searchParams.page.toString())
+        queryString.set('perPage', searchParams.perPage.toString())
+        queryString.set('oaOnly', searchParams.oaOnly.toString())
+        queryString.set('sort', searchParams.sort)
+        if (searchParams.sortDir) queryString.set('sortDir', searchParams.sortDir)
+        if (searchParams.yearFrom) queryString.set('yearFrom', searchParams.yearFrom.toString())
+        if (searchParams.yearTo) queryString.set('yearTo', searchParams.yearTo.toString())
+        if (searchParams.documentType) queryString.set('documentType', searchParams.documentType)
+        if (searchParams.language) queryString.set('language', searchParams.language)
+
+        if (request.mode === 'basic') {
+          queryString.set('q', request.q)
+        } else {
+          queryString.set('mode', 'advanced')
+          const fields = request.fields
+          if (fields.author.trim()) queryString.set('author', fields.author.trim())
+          if (fields.title.trim()) queryString.set('title', fields.title.trim())
+          if (fields.doi.trim()) queryString.set('doi', fields.doi.trim())
+          if (fields.affiliation.trim()) queryString.set('affiliation', fields.affiliation.trim())
+        }
 
         const response = await fetch(`/api/search?${queryString}`)
         if (!response.ok) {
@@ -167,7 +283,9 @@ function HomeContent() {
         setStatusMessage(
           data.articles.length > 0
             ? `${data.total.toLocaleString()} results found.`
-            : `No results found for "${searchQuery}".`
+            : request.mode === 'advanced' && request.fields.doi.trim()
+              ? 'No result found for this DOI.'
+              : `No results found for "${displayQuery}".`
         )
 
         // Update URL
@@ -191,12 +309,25 @@ function HomeContent() {
 
   // Perform initial search if query in URL
   useEffect(() => {
-    if (params.q && !hasSearched) {
+    if (hasSearched) return
+
+    if (initialMode === 'advanced' && hasAnyAdvancedField(initialAdvancedFields)) {
+      const fields = initialAdvancedFields
+      const display = buildAdvancedDisplayQuery(fields)
+      const newParams: SearchParams = { ...params, q: display }
+      setParams(newParams)
+      performSearch({ mode: 'advanced', fields }, newParams)
+      setHasSearched(true)
+      setShowIntro(false)
+      return
+    }
+
+    if (params.q) {
       setQuery(params.q)
-      performSearch(params.q, params)
+      performSearch({ mode: 'basic', q: params.q }, params)
       setHasSearched(true)
     }
-  }, [hasSearched, params, performSearch])
+  }, [hasSearched, initialAdvancedFields, initialMode, params, performSearch])
 
   const handleSearch = () => {
     const newParams: SearchParams = {
@@ -205,16 +336,45 @@ function HomeContent() {
       page: 1,
     }
     setParams(newParams)
-    performSearch(query, newParams)
+    performSearch({ mode: 'basic', q: query }, newParams)
+  }
+
+  const handleAdvancedSearch = () => {
+    const trimmed: AdvancedSearchFields = {
+      author: advancedFields.author.trim(),
+      title: advancedFields.title.trim(),
+      doi: advancedFields.doi.trim(),
+      affiliation: advancedFields.affiliation.trim(),
+    }
+
+    const display = buildAdvancedDisplayQuery(trimmed)
+    const newParams: SearchParams = {
+      ...params,
+      q: display,
+      page: 1,
+    }
+
+    setParams(newParams)
+    performSearch({ mode: 'advanced', fields: trimmed }, newParams)
+  }
+
+  const handleAdvancedFieldsChange = (changes: Partial<AdvancedSearchFields>) => {
+    setAdvancedFields((prev) => ({ ...prev, ...changes }))
+    if (typeof changes.doi === 'string') setDoiError(null)
+  }
+
+  const rerunLastSearch = (newParams: SearchParams) => {
+    if (!lastRequest) return
+    if (lastRequest.mode === 'basic' && !lastRequest.q.trim()) return
+    if (lastRequest.mode === 'advanced' && !hasAnyAdvancedField(lastRequest.fields)) return
+    performSearch(lastRequest, newParams)
   }
 
   const handleParamsChange = (changes: Partial<SearchParams>) => {
     const newParams = { ...params, ...changes }
     setParams(newParams)
 
-    if (params.q) {
-      performSearch(params.q, newParams)
-    }
+    rerunLastSearch(newParams)
   }
 
   const handleSaveArticle = (article: ResearchArticle) => {
@@ -392,7 +552,7 @@ function HomeContent() {
     setParams(newParams)
     setLastQuickPreset(preset)
     localStorage.setItem(LAST_PRESET_KEY, preset)
-    if (params.q) performSearch(params.q, newParams)
+    rerunLastSearch(newParams)
   }
 
   // Keyboard shortcuts: '/' focus search, 'n' next, 'p' prev
@@ -404,27 +564,31 @@ function HomeContent() {
 
       if (e.key === '/') {
         e.preventDefault()
-        const el = document.querySelector('input[aria-label="Search for academic articles"]') as HTMLInputElement | null
+        const selector =
+          searchMode === 'advanced'
+            ? 'input[data-search-primary="advanced"]'
+            : 'input[aria-label="Search for academic articles"]'
+        const el = document.querySelector(selector) as HTMLInputElement | null
         el?.focus()
       }
       if (e.key === 'n') {
         if (hasMore) {
           const newParams = { ...params, page: params.page + 1 }
           setParams(newParams)
-          performSearch(params.q, newParams)
+          if (lastRequest) performSearch(lastRequest, newParams)
         }
       }
       if (e.key === 'p') {
         if (params.page > 1) {
           const newParams = { ...params, page: Math.max(1, params.page - 1) }
           setParams(newParams)
-          performSearch(params.q, newParams)
+          if (lastRequest) performSearch(lastRequest, newParams)
         }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [hasMore, params, performSearch])
+  }, [hasMore, lastRequest, params, performSearch, searchMode])
 
 
   return (
@@ -435,16 +599,34 @@ function HomeContent() {
         <div className="sr-only" role="status" aria-live="polite">
           {loading ? 'Searching articles...' : statusMessage}
         </div>
-        {/* Search & Filter Toggle */}
+        {/* */}
         <div className="search-toggle-stack sticky top-2 z-40 mb-4 rounded-2xl bg-background/80 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex-1">
-            <SearchInput
-              value={query}
-              onChange={setQuery}
-              onSearch={handleSearch}
-            />
+            {searchMode === 'advanced' ? (
+              <AdvancedSearchInput
+                fields={advancedFields}
+                onChange={handleAdvancedFieldsChange}
+                onSearch={handleAdvancedSearch}
+                doiError={doiError}
+              />
+            ) : (
+              <SearchInput value={query} onChange={setQuery} onSearch={handleSearch} />
+            )}
           </div>
-          <div className="sm:ml-2">
+          <div className="sm:ml-2 flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => {
+                setSearchMode((prev) => (prev === 'advanced' ? 'basic' : 'advanced'))
+                setDoiError(null)
+              }}
+              aria-pressed={searchMode === 'advanced'}
+              className={`glass-button px-4 py-2 text-sm font-medium transition-all hover:ring-2 hover:ring-foreground/20 ${searchMode === 'advanced' ? 'ring-2 ring-blue-500/50' : ''}`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Advanced
+              </span>
+            </button>
             <FilterToggleButton
               isVisible={filtersVisible}
               onClick={toggleFilters}
@@ -452,15 +634,15 @@ function HomeContent() {
           </div>
         </div>
 
-        {/* Filter Panel with animation */}
+        {/* */}
         <FilterPanel isVisible={filtersVisible}>
           <SearchFilters params={params} onParamsChange={handleParamsChange} />
         </FilterPanel>
 
-        {/* External Search Links */}
+        {/* */}
         {hasSearched && <ExternalSearchLinks query={params.q} />}
 
-        {/* Quick Filters */}
+        {/* */}
         {hasSearched && (
           <div className="glass rounded-2xl p-3 sm:p-4 mb-4">
             <div className="text-xs sm:text-sm text-foreground/60 mb-2">Quick refine</div>
@@ -540,7 +722,7 @@ function HomeContent() {
           </div>
         )}
 
-        {/* Intro Section */}
+        {/* */}
         {showIntro && (
           <div className="glass rounded-2xl p-6 sm:p-8 mb-8 text-center animate-glass-in">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl glass-button flex items-center justify-center mx-auto mb-4">
@@ -560,7 +742,7 @@ function HomeContent() {
           </div>
         )}
 
-        {/* Results */}
+        {/* */}
         {loading && (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -572,7 +754,11 @@ function HomeContent() {
         {!loading && hasSearched && results.length === 0 && (
           <div className="glass rounded-2xl p-6 sm:p-8 mb-6">
             <h3 className="text-lg font-bold mb-2">No results for &quot;{params.q}&quot;</h3>
-            <p className="text-sm text-foreground/70 mb-3">Try different keywords, broaden the query, or clear filters.</p>
+            <p className="text-sm text-foreground/70 mb-3">
+              {searchMode === 'advanced'
+                ? 'Try relaxing fields, correcting DOI, or clearing filters.'
+                : 'Try different keywords, broaden the query, or clear filters.'}
+            </p>
 
             <div className="flex flex-col sm:flex-row gap-2 mb-4">
               {(params.yearFrom || params.yearTo) && (
@@ -580,7 +766,7 @@ function HomeContent() {
                   onClick={() => {
                     const newParams: SearchParams = { ...params, yearFrom: undefined, yearTo: undefined, page: 1 }
                     setParams(newParams)
-                    if (params.q) performSearch(params.q, newParams)
+                    rerunLastSearch(newParams)
                   }}
                   className="glass-button"
                 >
@@ -593,7 +779,7 @@ function HomeContent() {
                   onClick={() => {
                     const newParams: SearchParams = { ...params, oaOnly: false, page: 1 }
                     setParams(newParams)
-                    if (params.q) performSearch(params.q, newParams)
+                    rerunLastSearch(newParams)
                   }}
                   className="glass-button"
                 >
@@ -601,20 +787,22 @@ function HomeContent() {
                 </Button>
               )}
 
-              <Button
-                onClick={() => {
-                  // Broaden search by reducing phrase specificity.
-                  const parts = (params.q || '').trim().split(/\s+/).filter(Boolean)
-                  const newQuery = parts.length > 2 ? parts.slice(0, 2).join(' ') : params.q
-                  const newParams: SearchParams = { ...params, q: newQuery, page: 1 }
-                  setQuery(newQuery)
-                  setParams(newParams)
-                  performSearch(newQuery, newParams)
-                }}
-                className="glass-button"
-              >
-                Try Broader Keywords
-              </Button>
+              {searchMode === 'basic' && (
+                <Button
+                  onClick={() => {
+                    // Broaden search by reducing phrase specificity.
+                    const parts = (params.q || '').trim().split(/\s+/).filter(Boolean)
+                    const newQuery = parts.length > 2 ? parts.slice(0, 2).join(' ') : params.q
+                    const newParams: SearchParams = { ...params, q: newQuery, page: 1 }
+                    setQuery(newQuery)
+                    setParams(newParams)
+                    performSearch({ mode: 'basic', q: newQuery }, newParams)
+                  }}
+                  className="glass-button"
+                >
+                  Try Broader Keywords
+                </Button>
+              )}
 
               <Button
                 onClick={() => {
@@ -630,7 +818,7 @@ function HomeContent() {
                     page: 1,
                   }
                   setParams(newParams)
-                  if (params.q) performSearch(params.q, newParams)
+                  rerunLastSearch(newParams)
                 }}
                 className="glass-button"
               >
@@ -638,7 +826,7 @@ function HomeContent() {
               </Button>
             </div>
 
-            {recentSearches.length > 0 && (
+            {searchMode === 'basic' && recentSearches.length > 0 && (
               <div className="mb-3">
                 <div className="text-sm text-foreground/60 mb-2">Recent searches</div>
                 <div className="flex flex-wrap gap-2">
@@ -649,7 +837,7 @@ function HomeContent() {
                         const newParams = { ...params, q: r, page: 1 }
                         setQuery(r)
                         setParams(newParams)
-                        performSearch(r, newParams)
+                        performSearch({ mode: 'basic', q: r }, newParams)
                       }}
                       className="glass-badge text-sm"
                     >
@@ -667,7 +855,7 @@ function HomeContent() {
 
         {!loading && results.length > 0 && (
           <div>
-            {/* Results Info */}
+            {/* */}
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-sm text-foreground/60">
                 <span className="font-medium">
@@ -683,7 +871,7 @@ function HomeContent() {
                   Page <span className="font-medium text-foreground">{params.page}</span>
                 </div>
 
-                {/* Sort order selector */}
+                {/* */}
                 <label className="text-sm text-foreground/60 flex items-center gap-2">
                   <span className="text-foreground/50">Sort:</span>
                   <select
@@ -693,7 +881,7 @@ function HomeContent() {
                       const newSort = e.target.value as 'relevance' | 'year' | 'citedBy'
                       const newParams = { ...params, sort: newSort, page: 1 }
                       setParams(newParams)
-                      if (params.q) performSearch(params.q, newParams)
+                      rerunLastSearch(newParams)
                     }}
                     className="glass-button px-2 py-1 text-sm"
                   >
@@ -702,7 +890,7 @@ function HomeContent() {
                     <option value="citedBy">Cited By</option>
                   </select>
 
-                {/* Sort direction toggle */}
+                {/* */}
                 <button
                   aria-label="Toggle sort direction"
                   title={params.sortDir === 'asc' ? 'Ascending' : 'Descending'}
@@ -710,7 +898,7 @@ function HomeContent() {
                     const newDir: NonNullable<SearchParams['sortDir']> = params.sortDir === 'asc' ? 'desc' : 'asc'
                     const newParams: SearchParams = { ...params, sortDir: newDir, page: 1 }
                     setParams(newParams)
-                    if (params.q) performSearch(params.q, newParams)
+                    rerunLastSearch(newParams)
                   }}
                     className="glass-button px-2 py-1 text-sm"
                   >
@@ -720,13 +908,13 @@ function HomeContent() {
               </div>
             </div>
 
-            {/* Search statistics */}
+            {/* */}
             <SearchStats results={results} />
 
-            {/* Breadcrumb */}
+            {/* */}
             <div className="mb-4 text-sm text-foreground/50">Home &gt; Search</div>
 
-            {/* Results List */}
+            {/* */}
             <div className="result-list">
               {results.map((article) => {
                 const idKey = article.doi || `${article.source}-${article.id}`
@@ -746,7 +934,7 @@ function HomeContent() {
               })}
             </div>
 
-            {/* Pagination Controls */}
+            {/* */}
             {(hasMore || params.page > 1 || selectedIds.size > 0) && (
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 glass rounded-2xl p-6">
                 <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
@@ -774,7 +962,7 @@ function HomeContent() {
                         onClick={() => {
                           const newParams = { ...params, page: Math.max(1, params.page - 1) }
                           setParams(newParams)
-                          performSearch(params.q, newParams)
+                          rerunLastSearch(newParams)
                           window.scrollTo({ top: 0, behavior: 'smooth' })
                         }}
                         disabled={params.page === 1}
@@ -798,7 +986,7 @@ function HomeContent() {
                         onClick={() => {
                           const newParams = { ...params, page: params.page + 1 }
                           setParams(newParams)
-                          performSearch(params.q, newParams)
+                          rerunLastSearch(newParams)
                           window.scrollTo({ top: 0, behavior: 'smooth' })
                         }}
                         disabled={!hasMore}

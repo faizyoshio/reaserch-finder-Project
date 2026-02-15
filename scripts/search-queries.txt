@@ -1,0 +1,34 @@
+# Put one query per line.
+# Lines starting with "#" are ignored.
+#
+# Provide 25 queries total (mix Indonesian + English).
+#
+# Example:
+# analisis bahaya persebaran hiv di indonesia
+# HIV transmission prevalence Indonesia
+
+analisis bahaya persebaran hiv di indonesia
+persebaran hiv pada remaja di indonesia
+prevalensi hiv pada ibu hamil di indonesia
+angka kejadian hiv di indonesia
+kepatuhan terapi antiretroviral hiv di indonesia
+epidemiologi hiv aids indonesia
+angka kejadian tuberkulosis di jakarta
+tuberkulosis multi drug resistant indonesia
+prevalensi tb pada anak indonesia
+penularan tb di indonesia
+penyebaran dengue di bali
+angka kejadian demam berdarah di indonesia
+faktor risiko demam berdarah dengue indonesia
+prevalensi dengue di indonesia
+malaria prevalence papua indonesia
+kematian malaria indonesia
+epidemiology of malaria in Indonesia
+HIV transmission prevalence Indonesia
+HIV incidence MSM Indonesia
+tuberculosis incidence Indonesia
+dengue incidence Indonesia
+COVID-19 mortality Indonesia
+SARS-CoV-2 transmission Indonesia
+hepatitis B prevalence Indonesia
+diabetes mellitus incidence Indonesia
