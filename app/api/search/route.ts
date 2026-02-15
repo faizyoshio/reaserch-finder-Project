@@ -873,7 +873,7 @@ export async function GET(request: NextRequest) {
       return json({ error: 'Search query too long.', code: 'QUERY_TOO_LONG' }, { status: 400 })
     }
 
-    const MAX_PAGE = 50
+    const MAX_PAGE = 25
     const pageRaw = parseInt(searchParams.get('page') || '1', 10)
     const page = Number.isFinite(pageRaw) ? Math.max(1, Math.min(MAX_PAGE, pageRaw)) : 1
     if (pageRaw > MAX_PAGE) {
