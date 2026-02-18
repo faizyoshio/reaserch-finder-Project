@@ -2,8 +2,9 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Sparkles, BookmarkIcon } from 'lucide-react'
+import { BookmarkIcon } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 export function TopBar() {
@@ -15,7 +16,14 @@ export function TopBar() {
         {/* */}
         <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg glass-button flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+            <Image
+              src="/researchfinder-icon.png"
+              alt="ResearchFinder icon"
+              width={40}
+              height={40}
+              className="w-4 h-4 sm:w-5 sm:h-5 rounded-sm"
+              priority
+            />
           </div>
           <div className="hidden sm:block">
             <span className="text-lg sm:text-xl font-bold leading-none bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Sparkles } from 'lucide-react'
 import RouteLoading from './loading'
 import { TopBar } from '@/components/top-bar'
@@ -583,7 +584,14 @@ function HomeContent() {
         {showIntro && (
           <div className="glass rounded-2xl p-6 sm:p-8 mb-8 text-center animate-glass-in">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl glass-button flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
+              <Image
+                src="/researchfinder-icon.png"
+                alt="ResearchFinder icon"
+                width={64}
+                height={64}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl"
+                priority
+              />
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-balance">
               Find Your Research
