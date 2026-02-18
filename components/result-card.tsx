@@ -122,13 +122,13 @@ export function ResultCard({
       onUnsave?.(idKey)
       toast({
         title: 'Removed',
-        description: 'Article removed from saved',
+        description: 'Source removed from saved',
       })
     } else {
       onSave?.(article)
       toast({
         title: 'Saved',
-        description: 'Article saved successfully',
+        description: 'Source saved successfully',
       })
     }
   }
@@ -181,7 +181,7 @@ export function ResultCard({
             checked={selected}
             onChange={() => onToggleSelect?.(idKey)}
             className="form-checkbox w-4 h-4 accent-primary"
-            aria-label="Select article"
+            aria-label="Select source"
           />
         </label>
       )}

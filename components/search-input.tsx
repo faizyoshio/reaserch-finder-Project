@@ -64,12 +64,12 @@ export function SearchInput({ value, onChange, onSearch }: SearchInputProps) {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search papers..."
+          placeholder="Search journals, e-books, and research books..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           className="flex-1 bg-transparent text-foreground placeholder-foreground/40 focus:outline-none text-sm sm:text-base"
-          aria-label="Search for academic articles"
+          aria-label="Search journals, e-books, and research books"
         />
         {value && (
           <button

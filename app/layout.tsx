@@ -11,10 +11,10 @@ import './globals.css'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ResearchFinder - Academic Literature Discovery',
-  description: 'ResearchFinder is a dedicated scholarly platform designed to streamline the discovery of academic literature and research publications.',
+  title: 'ResearchFinder - Journals, E-Books, and Open Research Sources',
+  description: 'ResearchFinder helps you discover journals, e-books, and historical research books with open public and legal access.',
   generator: 'Faiz Yoshio',
-  keywords: ['research', 'academic', 'journals', 'publications', 'literature'],
+  keywords: ['research', 'academic', 'journals', 'ebooks', 'open access', 'public domain books', 'literature'],
   authors: [{ name: 'faizyoshio.my.id' }],
   manifest: '/site.webmanifest',
   icons: {

@@ -37,7 +37,7 @@ export function TopBar() {
                 ? 'ring-2 ring-blue-500 shadow-lg'
                 : 'hover:shadow-md'
             }`}
-            aria-label="Saved articles"
+            aria-label="Saved sources"
           >
             <BookmarkIcon className="w-4 h-4" />
             <span className="hidden sm:inline">Saved</span>

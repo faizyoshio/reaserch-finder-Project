@@ -109,7 +109,7 @@ export default function SavedPage() {
             <h1 className="text-2xl sm:text-3xl font-bold">Saved</h1>
           </div>
           <p className="text-sm sm:text-base text-foreground/70">
-            {savedState.articles.length} unique articles saved
+            {savedState.articles.length} unique sources saved
           </p>
           {savedState.mergedDuplicates > 0 && (
             <p className="text-xs sm:text-sm text-foreground/55 mt-1">
@@ -121,8 +121,8 @@ export default function SavedPage() {
         {savedState.articles.length === 0 && (
           <div className="glass rounded-2xl p-8 sm:p-12 text-center">
             <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-foreground/20 mx-auto mb-4" />
-            <h2 className="text-lg sm:text-xl font-semibold text-foreground/70 mb-2">No saved articles</h2>
-            <p className="text-sm text-foreground/50">Start searching and save your favorite articles</p>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground/70 mb-2">No saved sources</h2>
+            <p className="text-sm text-foreground/50">Start searching and save your favorite journals, e-books, or books</p>
           </div>
         )}
 

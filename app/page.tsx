@@ -404,7 +404,7 @@ function HomeContent() {
     localStorage.setItem('researchfinder-saved', JSON.stringify(merged))
     toast({
       title: 'Saved',
-      description: `${added} article${added === 1 ? '' : 's'} added to Saved.`,
+      description: `${added} source${added === 1 ? '' : 's'} added to Saved.`,
     })
   }
 
@@ -478,7 +478,7 @@ function HomeContent() {
     if (selectedWithDoi.length === 0) {
       toast({
         title: 'No DOI',
-        description: 'Selected articles do not have DOI links.',
+        description: 'Selected items do not have DOI links.',
       })
       return
     }
@@ -508,7 +508,7 @@ function HomeContent() {
         const selector =
           searchMode === 'advanced'
             ? 'input[data-search-primary="advanced"]'
-            : 'input[aria-label="Search for academic articles"]'
+            : 'input[aria-label="Search journals, e-books, and research books"]'
         const el = document.querySelector(selector) as HTMLInputElement | null
         el?.focus()
       }
@@ -538,7 +538,7 @@ function HomeContent() {
 
       <main id="main-content" aria-busy={loading} className="flex-1 px-2 sm:px-4 py-4 sm:py-6 max-w-5xl mx-auto w-full">
         <div className="sr-only" role="status" aria-live="polite">
-          {loading ? 'Searching articles...' : statusMessage}
+          {loading ? 'Searching sources...' : statusMessage}
         </div>
         {/* */}
         <div className="search-toggle-stack sticky top-2 z-40 mb-4 rounded-2xl bg-background/80 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -597,12 +597,12 @@ function HomeContent() {
               Find Your Research
             </h2>
             <p className="text-sm sm:text-base text-foreground/70 leading-relaxed max-w-2xl mx-auto text-pretty">
-              ResearchFinder is a dedicated scholarly platform designed to streamline the discovery of academic
-              literature and research publications. By providing an intuitive interface for accessing credible journals
-              and data, we empower researchers and students to build a solid foundation for their scientific inquiries.
+              ResearchFinder is a scholarly discovery platform for journals, e-books, and historical research books
+              with open public and legal access. With an intuitive interface and reliable sources, researchers and
+              students can build a stronger foundation for their studies.
             </p>
             <p className="text-xs sm:text-sm text-foreground/50 mt-4">
-              Access global academic journals and research
+              Access journals, e-books, and open research books legally
             </p>
           </div>
         )}
