@@ -583,13 +583,13 @@ function HomeContent() {
         {/* */}
         {showIntro && (
           <div className="glass rounded-2xl p-6 sm:p-8 mb-8 text-center animate-glass-in">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl glass-button flex items-center justify-center mx-auto mb-4">
+            <div className="relative h-[clamp(3rem,11vw,4.25rem)] w-[clamp(3rem,11vw,4.25rem)] rounded-2xl glass-button p-0 flex items-center justify-center mx-auto mb-4 overflow-hidden">
               <Image
                 src="/researchfinder-icon.png"
                 alt="ResearchFinder icon"
-                width={64}
-                height={64}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl"
+                fill
+                sizes="(max-width: 640px) 40px, 52px"
+                className="rounded-xl object-contain p-2 sm:p-2.5"
                 priority
               />
             </div>

@@ -14,25 +14,18 @@ export function TopBar() {
     <header className="top-0 z-50 glass-strong rounded-b-2xl mx-2 mt-2 sm:mx-4 sm:mt-3">
       <nav className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
         {/* */}
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg glass-button flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+        <Link href="/" className="flex items-center group">
+          <div className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-lg glass-button p-0 flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-110">
             <Image
               src="/researchfinder-icon.png"
               alt="ResearchFinder icon"
-              width={40}
-              height={40}
-              className="w-4 h-4 sm:w-5 sm:h-5 rounded-sm"
+              fill
+              sizes="(max-width: 640px) 20px, 24px"
+              className="rounded-sm object-contain p-1.5 sm:p-2"
               priority
             />
           </div>
-          <div className="hidden sm:block">
-            <span className="text-lg sm:text-xl font-bold leading-none bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-              FAIZ YOSHIO - ResearchFinder
-            </span>
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent sm:hidden">
-            FZ
-          </span>
+          <span className="sr-only">ResearchFinder</span>
         </Link>
 
         {/* */}
