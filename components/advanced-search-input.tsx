@@ -15,9 +15,10 @@ interface AdvancedSearchInputProps {
   onChange: (changes: Partial<AdvancedSearchFields>) => void
   onSearch: () => void
   doiError?: string | null
+  validationMessage?: string | null
 }
 
-export function AdvancedSearchInput({ fields, onChange, onSearch, doiError }: AdvancedSearchInputProps) {
+export function AdvancedSearchInput({ fields, onChange, onSearch, doiError, validationMessage }: AdvancedSearchInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -131,6 +132,12 @@ export function AdvancedSearchInput({ fields, onChange, onSearch, doiError }: Ad
           </div>
         </div>
       </div>
+      {validationMessage ? (
+        <div className="mt-3 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{validationMessage}</span>
+        </div>
+      ) : null}
     </div>
   )
 }

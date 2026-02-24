@@ -49,6 +49,15 @@ function buildAdvancedDisplayQuery(fields: AdvancedSearchFields): string {
   return parts.join(' ').replace(/\s+/g, ' ').trim()
 }
 
+const ADVANCED_FIELD_MAX = 300
+
+function formatErrorMessage(message: string, details: { status?: number; code?: string } = {}) {
+  const tags: string[] = []
+  if (details.status) tags.push(`HTTP ${details.status}`)
+  if (details.code) tags.push(details.code)
+  return tags.length > 0 ? `${message} (${tags.join(' / ')})` : message
+}
+
 function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -95,6 +104,7 @@ function HomeContent() {
     return null
   })
   const [doiError, setDoiError] = useState<string | null>(null)
+  const [advancedError, setAdvancedError] = useState<string | null>(null)
 
   const [query, setQuery] = useState('')
   const [params, setParams] = useState<SearchParams>({
@@ -153,8 +163,10 @@ function HomeContent() {
   const performSearch = React.useCallback(
     async (request: SearchRequest, searchParams: SearchParams) => {
       let displayQuery = ''
+      let normalizedRequest: SearchRequest = request
 
       if (request.mode === 'basic') {
+        setAdvancedError(null)
         displayQuery = request.q
         if (!validation.isValidSearchQuery(displayQuery)) {
           const message = validation.getValidationMessage(displayQuery)
@@ -167,27 +179,55 @@ function HomeContent() {
           return
         }
       } else {
-        displayQuery = buildAdvancedDisplayQuery(request.fields)
-        if (!hasAnyAdvancedField(request.fields)) {
+        const trimmedFields: AdvancedSearchFields = {
+          author: request.fields.author.trim(),
+          title: request.fields.title.trim(),
+          doi: request.fields.doi.trim(),
+          affiliation: request.fields.affiliation.trim(),
+        }
+        normalizedRequest = { mode: 'advanced', fields: trimmedFields }
+        displayQuery = buildAdvancedDisplayQuery(trimmedFields)
+        setAdvancedError(null)
+
+        if (!hasAnyAdvancedField(trimmedFields)) {
           const message = 'Enter at least one advanced field.'
-          setStatusMessage(message)
+          const formatted = formatErrorMessage(message, { code: 'ADVANCED_EMPTY' })
+          setAdvancedError(formatted)
+          setStatusMessage(formatted)
           toast({
             title: 'Warning',
-            description: message,
+            description: formatted,
             variant: 'destructive',
           })
           return
         }
 
-        if (request.fields.doi.trim()) {
-          const normalized = normalizeDoiInput(request.fields.doi)
+        const fieldEntries = Object.entries(trimmedFields) as Array<[keyof AdvancedSearchFields, string]>
+        const tooLong = fieldEntries.find(([, value]) => value.length > ADVANCED_FIELD_MAX)
+        if (tooLong) {
+          const [key] = tooLong
+          const message = `Advanced field too long: ${key}`
+          const formatted = formatErrorMessage(message, { code: 'ADVANCED_FIELD_TOO_LONG' })
+          setAdvancedError(formatted)
+          setStatusMessage(formatted)
+          toast({
+            title: 'Warning',
+            description: formatted,
+            variant: 'destructive',
+          })
+          return
+        }
+
+        if (trimmedFields.doi) {
+          const normalized = normalizeDoiInput(trimmedFields.doi)
           if (!isProbablyDoiInput(normalized)) {
             const message = 'Invalid DOI format.'
+            const formatted = formatErrorMessage(message, { code: 'INVALID_DOI' })
             setDoiError('Invalid DOI format. Example: 10.1234/abcd')
-            setStatusMessage(message)
+            setStatusMessage(formatted)
             toast({
               title: 'Warning',
-              description: message,
+              description: formatted,
               variant: 'destructive',
             })
             return
@@ -197,7 +237,7 @@ function HomeContent() {
         setDoiError(null)
       }
 
-      setLastRequest(request)
+      setLastRequest(normalizedRequest)
       setLoading(true)
       setShowIntro(false)
       setHasSearched(true)
@@ -214,27 +254,31 @@ function HomeContent() {
         if (searchParams.documentType) queryString.set('documentType', searchParams.documentType)
         if (searchParams.language) queryString.set('language', searchParams.language)
 
-        if (request.mode === 'basic') {
-          queryString.set('q', request.q)
+        if (normalizedRequest.mode === 'basic') {
+          queryString.set('q', normalizedRequest.q)
         } else {
           queryString.set('mode', 'advanced')
-          const fields = request.fields
-          if (fields.author.trim()) queryString.set('author', fields.author.trim())
-          if (fields.title.trim()) queryString.set('title', fields.title.trim())
-          if (fields.doi.trim()) queryString.set('doi', fields.doi.trim())
-          if (fields.affiliation.trim()) queryString.set('affiliation', fields.affiliation.trim())
+          const fields = normalizedRequest.fields
+          if (fields.author) queryString.set('author', fields.author)
+          if (fields.title) queryString.set('title', fields.title)
+          if (fields.doi) queryString.set('doi', fields.doi)
+          if (fields.affiliation) queryString.set('affiliation', fields.affiliation)
         }
 
         const response = await fetch(`/api/search?${queryString}`)
         if (!response.ok) {
           let message = 'Search failed'
+          let code: string | undefined
           try {
             const payload = await response.json()
             message = payload.error || message
+            code = payload.code
           } catch {
             // ignore parse error
           }
-          throw new Error(message)
+          const formatted = formatErrorMessage(message, { status: response.status, code })
+          if (normalizedRequest.mode === 'advanced') setAdvancedError(formatted)
+          throw new Error(formatted)
         }
 
         const data: SearchResponse = await response.json()
@@ -250,7 +294,7 @@ function HomeContent() {
         setStatusMessage(
           data.articles.length > 0
             ? `${data.total.toLocaleString()} results found.`
-            : request.mode === 'advanced' && request.fields.doi.trim()
+            : normalizedRequest.mode === 'advanced' && normalizedRequest.fields.doi
               ? 'No result found for this DOI.'
               : `No results found for "${displayQuery}".`
         )
@@ -328,6 +372,7 @@ function HomeContent() {
   const handleAdvancedFieldsChange = (changes: Partial<AdvancedSearchFields>) => {
     setAdvancedFields((prev) => ({ ...prev, ...changes }))
     if (typeof changes.doi === 'string') setDoiError(null)
+    setAdvancedError(null)
   }
 
   const rerunLastSearch = (newParams: SearchParams) => {
@@ -549,6 +594,7 @@ function HomeContent() {
                 onChange={handleAdvancedFieldsChange}
                 onSearch={handleAdvancedSearch}
                 doiError={doiError}
+                validationMessage={advancedError}
               />
             ) : (
               <SearchInput value={query} onChange={setQuery} onSearch={handleSearch} />
@@ -559,6 +605,7 @@ function HomeContent() {
               onClick={() => {
                 setSearchMode((prev) => (prev === 'advanced' ? 'basic' : 'advanced'))
                 setDoiError(null)
+                setAdvancedError(null)
               }}
               aria-pressed={searchMode === 'advanced'}
               className={`glass-button px-4 py-2 text-sm font-medium transition-all hover:ring-2 hover:ring-foreground/20 ${searchMode === 'advanced' ? 'ring-2 ring-blue-500/50' : ''}`}

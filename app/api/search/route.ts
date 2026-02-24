@@ -305,8 +305,8 @@ function normalizeDoi(doi: string): string {
   return doi
     .trim()
     .replace(/\s+/g, '')
-    .replace(/^https?:\/\/(dx\.)?doi\.org\//, '')
-    .replace(/^doi:/, '')
+    .replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
+    .replace(/^doi:/i, '')
 }
 
 function isProbablyDoi(doi: string): boolean {
@@ -869,9 +869,6 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const rawQuery = searchParams.get('q')?.trim() || ''
-    if (rawQuery.length > 500) {
-      return json({ error: 'Search query too long.', code: 'QUERY_TOO_LONG' }, { status: 400 })
-    }
 
     const MAX_PAGE = 25
     const pageRaw = parseInt(searchParams.get('page') || '1', 10)
@@ -903,6 +900,10 @@ export async function GET(request: NextRequest) {
     const isAdvanced =
       modeParam === 'advanced' ||
       Boolean(advancedFields.author || advancedFields.title || advancedFields.doi || advancedFields.affiliation)
+
+    if (!isAdvanced && rawQuery.length > 500) {
+      return json({ error: 'Search query too long.', code: 'QUERY_TOO_LONG' }, { status: 400 })
+    }
 
     if (isAdvanced) {
       if (
