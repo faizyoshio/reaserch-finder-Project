@@ -9,6 +9,19 @@ const CACHE_TTL = 60 * 1000
 
 const OPENALEX_ALLOWED_HOSTS = ['api.openalex.org'] as const
 const CROSSREF_ALLOWED_HOSTS = ['api.crossref.org'] as const
+const OPENALEX_SELECT = [
+  'id',
+  'title',
+  'authorships',
+  'publication_year',
+  'primary_location',
+  'doi',
+  'open_access',
+  'cited_by_count',
+  'abstract_inverted_index',
+  'relevance_score',
+  'type',
+].join(',')
 
 type AbstractInvertedIndex = Record<string, number[]>
 
@@ -17,11 +30,17 @@ interface OpenAlexWork {
   title: string
   authorships: Array<{ author: { display_name: string } }>
   publication_year: number
-  host_venue?: { display_name?: string }
+  primary_location?: {
+    is_oa?: boolean
+    landing_page_url?: string
+    pdf_url?: string
+    source?: {
+      display_name?: string
+    }
+  }
   doi: string
-  open_access: { is_oa: boolean }
+  open_access?: { is_oa?: boolean; oa_url?: string }
   cited_by_count: number
-  landing_page_url?: string
   abstract_inverted_index?: AbstractInvertedIndex
   relevance_score?: number
   type?: string
@@ -342,6 +361,34 @@ function deduplicateArticles(articles: ResearchArticle[]): ResearchArticle[] {
   return Array.from(seen.values())
 }
 
+function mapOpenAlexWork(work: OpenAlexWork): { article: ResearchArticle; relevanceScore: number } {
+  const abstract = buildAbstractFromInvertedIndex(work.abstract_inverted_index)
+  const articleUrl =
+    safeHttpUrl(work.primary_location?.landing_page_url) ||
+    safeHttpUrl(work.primary_location?.pdf_url) ||
+    safeHttpUrl(work.open_access?.oa_url)
+
+  const article: ResearchArticle = {
+    id: work.id,
+    title: work.title,
+    authors: work.authorships.slice(0, 5).map((a) => a.author.display_name),
+    year: work.publication_year,
+    venue: work.primary_location?.source?.display_name,
+    doi: work.doi ? normalizeDoi(work.doi) : undefined,
+    url: articleUrl,
+    citedBy: work.cited_by_count,
+    openAccess: Boolean(work.open_access?.is_oa ?? work.primary_location?.is_oa),
+    source: 'openAlex',
+    abstract,
+    documentType: work.type,
+  }
+
+  return {
+    article,
+    relevanceScore: typeof work.relevance_score === 'number' ? work.relevance_score : 0,
+  }
+}
+
 function sortArticles(articles: ResearchArticle[], sort: 'relevance' | 'year' | 'citedBy'): ResearchArticle[] {
   const sorted = [...articles]
   if (sort === 'year') return sorted.sort((a, b) => b.year - a.year)
@@ -432,27 +479,12 @@ async function fetchOpenAlex(
     const disease = processed.disease
     const country = processed.country
 
-    const select = [
-      'id',
-      'title',
-      'authorships',
-      'publication_year',
-      'host_venue',
-      'doi',
-      'open_access',
-      'cited_by_count',
-      'landing_page_url',
-      'abstract_inverted_index',
-      'relevance_score',
-      'type',
-    ].join(',')
-
     const buildUrl = (filters: string[]) => {
       const searchParams = new URLSearchParams()
       searchParams.set('page', String(page))
       searchParams.set('per-page', String(perPage))
       searchParams.set('sort', 'relevance_score:desc')
-      searchParams.set('select', select)
+      searchParams.set('select', OPENALEX_SELECT)
       searchParams.set('filter', filters.join(','))
       return `https://api.openalex.org/works?${searchParams.toString()}`
     }
@@ -476,25 +508,6 @@ async function fetchOpenAlex(
 
       const data = (await response.json()) as OpenAlexWorksResponse
       return { url, ok: true as const, errorCode: undefined, data }
-    }
-
-    const mapWork = (work: OpenAlexWork): { article: ResearchArticle; relevanceScore: number } => {
-      const abstract = buildAbstractFromInvertedIndex(work.abstract_inverted_index)
-      const article: ResearchArticle = {
-        id: work.id,
-        title: work.title,
-        authors: work.authorships.slice(0, 5).map((a) => a.author.display_name),
-        year: work.publication_year,
-        venue: work.host_venue?.display_name,
-        doi: work.doi ? normalizeDoi(work.doi) : undefined,
-        url: safeHttpUrl(work.landing_page_url),
-        citedBy: work.cited_by_count,
-        openAccess: work.open_access.is_oa,
-        source: 'openAlex',
-        abstract,
-        documentType: work.type,
-      }
-      return { article, relevanceScore: typeof work.relevance_score === 'number' ? work.relevance_score : 0 }
     }
 
     const containsDisease = (article: Pick<ResearchArticle, 'title' | 'abstract'>, profile: DiseaseProfile) => {
@@ -655,7 +668,7 @@ async function fetchOpenAlex(
         if (!key) continue
         if (seen.has(key)) continue
         seen.add(key)
-        merged.push(mapWork(work))
+        merged.push(mapOpenAlexWork(work))
       }
 
       const validated = disease ? merged.filter(({ article }) => containsDisease(article, disease)) : merged
@@ -714,21 +727,6 @@ async function fetchOpenAlexAdvanced(
     const baseFilters = buildOpenAlexBaseFilters(opts)
     const combinedFilters = [...filterParts, ...baseFilters]
 
-    const select = [
-      'id',
-      'title',
-      'authorships',
-      'publication_year',
-      'host_venue',
-      'doi',
-      'open_access',
-      'cited_by_count',
-      'landing_page_url',
-      'abstract_inverted_index',
-      'relevance_score',
-      'type',
-    ].join(',')
-
     const hasSearchFilter = Boolean(author || title || affiliation)
     // OpenAlex only supports relevance_score sorting when there is a search query (e.g. *.search filters).
     const sort = hasSearchFilter ? 'relevance_score:desc' : 'publication_year:desc'
@@ -739,7 +737,7 @@ async function fetchOpenAlexAdvanced(
     const searchParams = new URLSearchParams()
     searchParams.set('page', String(requestPage))
     searchParams.set('per-page', String(requestPerPage))
-    searchParams.set('select', select)
+    searchParams.set('select', OPENALEX_SELECT)
     searchParams.set('sort', sort)
     searchParams.set('filter', combinedFilters.join(','))
     const url = `https://api.openalex.org/works?${searchParams.toString()}`
@@ -763,25 +761,7 @@ async function fetchOpenAlexAdvanced(
     const data = (await response.json()) as OpenAlexWorksResponse
     const works = data.results || []
 
-    const articles = works.map((work) => {
-      const abstract = buildAbstractFromInvertedIndex(work.abstract_inverted_index)
-      const article: ResearchArticle = {
-        id: work.id,
-        title: work.title,
-        authors: work.authorships.slice(0, 5).map((a) => a.author.display_name),
-        year: work.publication_year,
-        venue: work.host_venue?.display_name,
-        doi: work.doi ? normalizeDoi(work.doi) : undefined,
-        url: safeHttpUrl(work.landing_page_url),
-        citedBy: work.cited_by_count,
-        openAccess: work.open_access.is_oa,
-        source: 'openAlex',
-        abstract,
-        documentType: work.type,
-      }
-
-      return article
-    })
+    const articles = works.map((work) => mapOpenAlexWork(work).article)
 
     const validated = doi ? articles.filter((a) => (a.doi || '').toLowerCase() === doi.toLowerCase()) : articles
 
