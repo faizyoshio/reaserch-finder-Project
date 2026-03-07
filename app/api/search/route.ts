@@ -93,11 +93,31 @@ interface CountryProfile {
 interface ProcessedQuery {
   originalQuery: string
   cleanedQuery: string
+  phrases: string[]
   extractedKeywords: string[]
   translatedKeywords: string[]
   disease?: DiseaseProfile
   country?: CountryProfile
   secondaryGroups: string[][]
+}
+
+interface QueryValidationGroup {
+  label: string
+  primaryTerms: string[]
+  expandedTerms: string[]
+  regex?: RegExp
+  required?: boolean
+}
+
+interface ArticleQueryMatch {
+  coreOk: boolean
+  exactPhrase: boolean
+  fullQueryInTitle: boolean
+  fullQueryInText: boolean
+  matchedGroups: number
+  originalMatches: number
+  titleMatches: number
+  score: number
 }
 
 const INDONESIAN_STOPWORDS = new Set([
@@ -312,6 +332,7 @@ function processQueryForOpenAlex(originalQuery: string, cleanedQuery: string, ph
   return {
     originalQuery,
     cleanedQuery,
+    phrases,
     extractedKeywords: extracted,
     translatedKeywords: translatedKeywordList,
     disease,
@@ -337,6 +358,180 @@ function isProbablyDoi(doi: string): boolean {
 
 function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function buildQueryValidationGroups(processed: ProcessedQuery): QueryValidationGroup[] {
+  const groups: QueryValidationGroup[] = []
+
+  if (processed.disease) {
+    groups.push({
+      label: processed.disease.canonical,
+      primaryTerms: [processed.disease.primaryKeyword.toLowerCase()],
+      expandedTerms: [processed.disease.primaryKeyword.toLowerCase(), processed.disease.canonical.toLowerCase()],
+      regex: processed.disease.validationRegex,
+      required: true,
+    })
+  }
+
+  if (processed.country) {
+    const countryTerms = uniquePreserveOrder([processed.country.name, ...processed.country.keywords]).map((term) =>
+      term.toLowerCase()
+    )
+    groups.push({
+      label: processed.country.name,
+      primaryTerms: countryTerms,
+      expandedTerms: countryTerms,
+    })
+  }
+
+  const diseaseTerms = new Set(
+    processed.disease ? [processed.disease.primaryKeyword.toLowerCase(), processed.disease.canonical.toLowerCase()] : []
+  )
+  const countryTerms = new Set(processed.country ? processed.country.keywords.map((term) => term.toLowerCase()) : [])
+
+  for (const rawKeyword of processed.extractedKeywords) {
+    const keyword = rawKeyword.toLowerCase()
+    if (!keyword) continue
+    if (diseaseTerms.has(keyword)) continue
+    if (countryTerms.has(keyword)) continue
+
+    const translations = EPIDEMIOLOGY_TRANSLATIONS[keyword] || []
+    groups.push({
+      label: keyword,
+      primaryTerms: [keyword],
+      expandedTerms: uniquePreserveOrder([keyword, ...translations]).map((term) => term.toLowerCase()),
+    })
+  }
+
+  return groups
+}
+
+function scoreArticleAgainstProcessedQuery(processed: ProcessedQuery, article: ResearchArticle): ArticleQueryMatch {
+  const titleText = normalizeText(article.title || '')
+  const venueText = normalizeText(article.venue || '')
+  const abstractText = normalizeText(article.abstract || '')
+  const fullText = [titleText, venueText, abstractText].filter(Boolean).join(' ').trim()
+
+  const normalizedPhraseNeedles = uniquePreserveOrder(
+    [
+      ...processed.phrases.map((phrase) => normalizeText(phrase)).filter(Boolean),
+      normalizeText(processed.cleanedQuery || processed.originalQuery),
+    ].filter(Boolean)
+  )
+
+  const exactPhrase = normalizedPhraseNeedles.some((phrase) => titleText.includes(phrase) || fullText.includes(phrase))
+  const normalizedFullQuery = normalizeText(processed.cleanedQuery || processed.originalQuery)
+  const fullQueryInTitle = Boolean(normalizedFullQuery) && titleText.includes(normalizedFullQuery)
+  const fullQueryInText = Boolean(normalizedFullQuery) && fullText.includes(normalizedFullQuery)
+
+  let coreOk = true
+  let matchedGroups = 0
+  let originalMatches = 0
+  let titleMatches = 0
+  let score = 0
+
+  for (const group of buildQueryValidationGroups(processed)) {
+    const hasRegexTitle = group.regex ? group.regex.test(article.title || '') : false
+    const hasRegexAbstract = group.regex ? group.regex.test(article.abstract || '') : false
+    const matchedByRegex = hasRegexTitle || hasRegexAbstract
+
+    const primaryInTitle = group.primaryTerms.some((term) => term && titleText.includes(term))
+    const primaryInText = group.primaryTerms.some((term) => term && fullText.includes(term))
+    const expandedInTitle = group.expandedTerms.some((term) => term && titleText.includes(term))
+    const expandedInText = group.expandedTerms.some((term) => term && fullText.includes(term))
+
+    const groupMatched = matchedByRegex || primaryInText || expandedInText
+    const originalMatched = matchedByRegex || primaryInText
+    const titleMatched = hasRegexTitle || primaryInTitle || expandedInTitle
+
+    if (group.required && !groupMatched) coreOk = false
+    if (!groupMatched) continue
+
+    matchedGroups += 1
+    if (originalMatched) originalMatches += 1
+    if (titleMatched) titleMatches += 1
+
+    if (hasRegexTitle || primaryInTitle) score += 8
+    else if (expandedInTitle) score += 5
+    else if (matchedByRegex || primaryInText) score += 4
+    else if (expandedInText) score += 2
+  }
+
+  if (exactPhrase) score += 10
+  if (fullQueryInTitle) score += 10
+  if (fullQueryInText) score += 6
+
+  return {
+    coreOk,
+    exactPhrase,
+    fullQueryInTitle,
+    fullQueryInText,
+    matchedGroups,
+    originalMatches,
+    titleMatches,
+    score,
+  }
+}
+
+function isStrictArticleMatch(match: ArticleQueryMatch, groupCount: number): boolean {
+  if (!match.coreOk) return false
+  if (groupCount === 0) return true
+  if (match.fullQueryInTitle) return true
+  if (match.exactPhrase && (match.originalMatches >= 1 || match.matchedGroups >= 1)) return true
+
+  const minGroupMatches = groupCount >= 5 ? 3 : groupCount >= 3 ? 2 : 1
+  const minOriginalMatches = groupCount >= 4 ? 2 : 1
+  const minTitleMatches = groupCount >= 4 ? 1 : 0
+
+  return (
+    match.matchedGroups >= minGroupMatches &&
+    match.originalMatches >= minOriginalMatches &&
+    match.titleMatches >= minTitleMatches
+  )
+}
+
+function isSoftArticleMatch(match: ArticleQueryMatch): boolean {
+  if (!match.coreOk) return false
+  if (match.fullQueryInText || match.exactPhrase) return true
+  return match.originalMatches >= 1 && (match.titleMatches >= 1 || match.matchedGroups >= 2 || match.score >= 8)
+}
+
+function compareArticleQueryMatch(
+  a: { match: ArticleQueryMatch; relevanceScore: number },
+  b: { match: ArticleQueryMatch; relevanceScore: number }
+) {
+  return (
+    Number(b.match.fullQueryInTitle) - Number(a.match.fullQueryInTitle) ||
+    Number(b.match.exactPhrase) - Number(a.match.exactPhrase) ||
+    b.match.titleMatches - a.match.titleMatches ||
+    b.match.originalMatches - a.match.originalMatches ||
+    b.match.matchedGroups - a.match.matchedGroups ||
+    b.match.score - a.match.score ||
+    b.relevanceScore - a.relevanceScore
+  )
+}
+
+function filterAndRankArticlesByProcessedQuery(
+  processed: ProcessedQuery,
+  items: Array<{ article: ResearchArticle; relevanceScore?: number }>
+): ResearchArticle[] {
+  const groups = buildQueryValidationGroups(processed)
+  if (groups.length === 0) {
+    return [...items]
+      .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0))
+      .map(({ article }) => article)
+  }
+
+  const scored = items.map(({ article, relevanceScore = 0 }) => ({
+    article,
+    relevanceScore,
+    match: scoreArticleAgainstProcessedQuery(processed, article),
+  }))
+
+  const strictMatches = scored.filter(({ match }) => isStrictArticleMatch(match, groups.length))
+  const chosenMatches = strictMatches.length > 0 ? strictMatches : scored.filter(({ match }) => isSoftArticleMatch(match))
+
+  return chosenMatches.sort(compareArticleQueryMatch).map(({ article }) => article)
 }
 
 function deduplicateArticles(articles: ResearchArticle[]): ResearchArticle[] {
@@ -672,7 +867,7 @@ async function fetchOpenAlex(
       }
 
       const validated = disease ? merged.filter(({ article }) => containsDisease(article, disease)) : merged
-      validated.sort((a, b) => b.relevanceScore - a.relevanceScore)
+      const filteredArticles = filterAndRankArticlesByProcessedQuery(processed, validated)
 
       console.info('[ResearchFinder] OpenAlexSearch', {
         originalQuery: processed.originalQuery,
@@ -681,15 +876,15 @@ async function fetchOpenAlex(
         translatedKeywords: processed.translatedKeywords,
         attempt: attempt.name,
         urls,
-        resultsReturned: validated.length,
+        resultsReturned: filteredArticles.length,
       })
 
-      if (validated.length > 0) {
+      if (filteredArticles.length > 0) {
         const totalEstimate = Math.max(
           titleOk ? (titleRes.data?.meta?.count || 0) : 0,
           abstractOk ? (abstractRes.data?.meta?.count || 0) : 0
         )
-        return { articles: validated.map(({ article }) => article), total: totalEstimate }
+        return { articles: filteredArticles, total: totalEstimate }
       }
     }
 
@@ -1101,6 +1296,10 @@ export async function GET(request: NextRequest) {
 
     if (oaOnly) combined = combined.filter((article) => article.openAccess)
     combined = deduplicateArticles(combined)
+    combined = filterAndRankArticlesByProcessedQuery(
+      processedForOpenAlex,
+      combined.map((article) => ({ article }))
+    )
     combined = combined.map((article) => ({ ...article, relevanceReasons: inferRelevanceReasons(article, query, oaOnly) }))
     combined = sortArticles(combined, sort)
     if (sortDir === 'asc' && (sort === 'year' || sort === 'citedBy')) {
