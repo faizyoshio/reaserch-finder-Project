@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     return withCors(request, response)
   } catch (error) {
-    console.error('[ResearchFinder] Export API error:', error)
+    console.error('[ResearchAtlas] Export API error:', error)
     return json({ error: 'Export failed' }, { status: 500 })
   }
 }

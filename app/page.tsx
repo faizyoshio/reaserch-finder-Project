@@ -128,7 +128,7 @@ function HomeContent() {
   const [hasSearched, setHasSearched] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([])
-  const [statusMessage, setStatusMessage] = useState('Ready to search.')
+  const [statusMessage, setStatusMessage] = useState('Ready to discover sources.')
 
   const [recentSearches, setRecentSearches] = useState<string[]>([])
 
@@ -142,7 +142,7 @@ function HomeContent() {
       try {
         setSavedArticles(JSON.parse(saved))
       } catch {
-        console.error('[ResearchFinder] Failed to load saved articles')
+        console.error('[ResearchAtlas] Failed to load saved articles')
       }
     }
   }, []) 
@@ -302,7 +302,7 @@ function HomeContent() {
         // Update URL
         router.push(`/?${queryString}`)
       } catch (error) {
-        console.error('[ResearchFinder] Search error')
+        console.error('[ResearchAtlas] Search error')
         const errorMessage = error instanceof Error ? error.message : 'Search failed'
         toast({
           title: 'Error',
@@ -477,7 +477,7 @@ function HomeContent() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `researchfinder-export.bib`
+    a.download = `researchatlas-export.bib`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -510,7 +510,7 @@ function HomeContent() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'researchfinder-export.ris'
+    a.download = 'researchatlas-export.ris'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -523,7 +523,7 @@ function HomeContent() {
     if (selectedWithDoi.length === 0) {
       toast({
         title: 'No DOI',
-        description: 'Selected items do not have DOI links.',
+        description: 'Selected sources do not have DOI links.',
       })
       return
     }
@@ -553,7 +553,7 @@ function HomeContent() {
         const selector =
           searchMode === 'advanced'
             ? 'input[data-search-primary="advanced"]'
-            : 'input[aria-label="Search journals, e-books, and research books"]'
+            : 'input[aria-label="Search journals, research books, e-books, or web books"]'
         const el = document.querySelector(selector) as HTMLInputElement | null
         el?.focus()
       }
@@ -608,7 +608,7 @@ function HomeContent() {
                 setAdvancedError(null)
               }}
               aria-pressed={searchMode === 'advanced'}
-              className={`glass-button px-4 py-2 text-sm font-medium transition-all hover:ring-2 hover:ring-foreground/20 ${searchMode === 'advanced' ? 'ring-2 ring-blue-500/50' : ''}`}
+              className={`glass-button px-4 py-2 text-sm font-medium transition-all hover:ring-2 hover:ring-foreground/20 ${searchMode === 'advanced' ? 'ring-2 ring-emerald-500/60' : ''}`}
             >
               <span className="inline-flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
@@ -632,8 +632,8 @@ function HomeContent() {
           <div className="glass rounded-2xl p-6 sm:p-8 mb-8 text-center animate-glass-in">
             <div className="relative h-[clamp(3rem,11vw,4.25rem)] w-[clamp(3rem,11vw,4.25rem)] rounded-2xl glass-button p-0 flex items-center justify-center mx-auto mb-4 overflow-hidden">
               <Image
-                src="/researchfinder-icon.png"
-                alt="ResearchFinder icon"
+                src="/researchatlas-icon.png"
+                alt="ResearchAtlas icon"
                 fill
                 sizes="(max-width: 640px) 40px, 52px"
                 className="rounded-xl object-contain p-2 sm:p-2.5"
@@ -641,15 +641,15 @@ function HomeContent() {
               />
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-balance">
-              Find Your Research
+              Discover Research Resources
             </h2>
             <p className="text-sm sm:text-base text-foreground/70 leading-relaxed max-w-2xl mx-auto text-pretty">
-              ResearchFinder is a scholarly discovery platform for journals, e-books, and historical research books
-              with open public and legal access. With an intuitive interface and reliable sources, researchers and
-              students can build a stronger foundation for their studies.
+              ResearchAtlas helps you find journals, research books, e-books, and trusted web publications from open,
+              legal, and academic-friendly sources. Use one workspace to explore references for coursework, writing,
+              and long-form study.
             </p>
             <p className="text-xs sm:text-sm text-foreground/50 mt-4">
-              Access journals, e-books, and open research books legally
+              One search flow for journals, books, and open knowledge on the web
             </p>
           </div>
         )}
@@ -665,7 +665,7 @@ function HomeContent() {
 
         {!loading && hasSearched && results.length === 0 && (
           <div className="glass rounded-2xl p-6 sm:p-8 mb-6">
-            <h3 className="text-lg font-bold mb-2">No results for &quot;{params.q}&quot;</h3>
+            <h3 className="text-lg font-bold mb-2">No sources found for &quot;{params.q}&quot;</h3>
             <p className="text-sm text-foreground/70 mb-3">
               {searchMode === 'advanced'
                 ? 'Try relaxing fields, correcting DOI, or clearing filters.'
@@ -821,7 +821,7 @@ function HomeContent() {
             <SearchStats results={results} />
 
             {/* */}
-            <div className="mb-4 text-sm text-foreground/50">Home &gt; Search</div>
+            <div className="mb-4 text-sm text-foreground/50">Atlas &gt; Search</div>
 
             {/* */}
             <div className="result-list">
@@ -860,7 +860,7 @@ function HomeContent() {
                         Export RIS
                       </Button>
                       <Button onClick={openSelectedDoi} className="glass-button">
-                        Open DOI
+                        Open DOI Links
                       </Button>
                     </div>
                   )}

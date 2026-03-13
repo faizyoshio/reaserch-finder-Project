@@ -59,7 +59,7 @@ export function SearchStats({ results }: Props) {
             const y = 44 - h
             return (
               <g key={s.year}>
-                <rect x={x} y={y} width={w} height={h} rx={2} fill="rgba(59,130,246,0.18)" stroke="rgba(59,130,246,0.25)" />
+                <rect x={x} y={y} width={w} height={h} rx={2} fill="rgba(15,118,110,0.2)" stroke="rgba(15,118,110,0.32)" />
                 <text x={x + w / 2} y={46} fontSize={8} fill="var(--foreground)" textAnchor="middle">{String(s.year).slice(2)}</text>
               </g>
             )

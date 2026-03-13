@@ -136,13 +136,13 @@ export function ResultCard({
   const getDocumentTypeColor = () => {
     switch (article.documentType?.toLowerCase()) {
       case 'journal':
-        return 'bg-blue-500/20 border-blue-400/40 dark:bg-blue-500/15 dark:border-blue-500/30 text-blue-700 dark:text-blue-300'
+        return 'bg-emerald-500/20 border-emerald-400/40 dark:bg-emerald-500/15 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
       case 'conference':
-        return 'bg-purple-500/20 border-purple-400/40 dark:bg-purple-500/15 dark:border-purple-500/30 text-purple-700 dark:text-purple-300'
+        return 'bg-amber-500/20 border-amber-400/40 dark:bg-amber-500/15 dark:border-amber-500/30 text-amber-700 dark:text-amber-300'
       case 'preprint':
         return 'bg-orange-500/20 border-orange-400/40 dark:bg-orange-500/15 dark:border-orange-500/30 text-orange-700 dark:text-orange-300'
       case 'book':
-        return 'bg-indigo-500/20 border-indigo-400/40 dark:bg-indigo-500/15 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
+        return 'bg-teal-500/20 border-teal-400/40 dark:bg-teal-500/15 dark:border-teal-500/30 text-teal-700 dark:text-teal-300'
       default:
         return 'bg-slate-500/20 border-slate-400/40 dark:bg-slate-500/15 dark:border-slate-500/30'
     }
@@ -242,7 +242,7 @@ export function ResultCard({
           {article.venue && <div className="glass-badge text-foreground/70 truncate max-w-xs">{article.venue}</div>}
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-3 border-t border-white/20 dark:border-blue-200/10">
+        <div className="flex flex-wrap gap-2 pt-3 border-t border-white/20 dark:border-emerald-200/10">
           {safeArticleUrl && (
             <a
               href={safeArticleUrl}
@@ -269,7 +269,7 @@ export function ResultCard({
           <button
             onClick={handleSaveToggle}
             className={`glass-button inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm ${
-              isSaved ? 'ring-2 ring-blue-500' : ''
+              isSaved ? 'ring-2 ring-emerald-500' : ''
             }`}
           >
             {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}

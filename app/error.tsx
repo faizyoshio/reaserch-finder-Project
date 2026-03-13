@@ -19,7 +19,7 @@ export default function Error({
         <div className="glass rounded-2xl p-6 sm:p-10 text-center animate-glass-in">
           <h1 className="text-2xl sm:text-3xl font-bold mb-3">Something went wrong</h1>
           <p className="text-sm sm:text-base text-foreground/70 mb-6">
-            An unexpected error occurred. Please try again.
+            We could not load the discovery view. Please try again.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2">

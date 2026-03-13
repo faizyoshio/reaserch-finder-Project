@@ -13,7 +13,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       attribute="class"
       enableSystem={true}
       defaultTheme="system"
-      storageKey="researchfinder-theme"
+      storageKey="researchatlas-theme"
       enableColorScheme={true}
     >
       {children}

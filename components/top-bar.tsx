@@ -17,15 +17,19 @@ export function TopBar() {
         <Link href="/" className="flex items-center group">
           <div className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-lg glass-button p-0 flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-110">
             <Image
-              src="/researchfinder-icon.png"
-              alt="ResearchFinder icon"
+              src="/researchatlas-icon.png"
+              alt="ResearchAtlas icon"
               fill
               sizes="(max-width: 640px) 20px, 24px"
               className="rounded-sm object-contain p-1.5 sm:p-2"
               priority
             />
           </div>
-          <span className="sr-only">ResearchFinder</span>
+          <div className="ml-2 hidden sm:block leading-tight">
+            <p className="text-sm font-semibold mb-0">ResearchAtlas</p>
+            <p className="text-[11px] text-foreground/60 mb-0">Journals, Books, and Open Sources</p>
+          </div>
+          <span className="sr-only">ResearchAtlas</span>
         </Link>
 
         {/* */}
@@ -34,7 +38,7 @@ export function TopBar() {
             href="/saved"
             className={`glass-button flex items-center gap-2 px-3 sm:px-4 py-2 text-sm sm:text-base transition-all duration-200 ${
               pathname === '/saved'
-                ? 'ring-2 ring-blue-500 shadow-lg'
+                ? 'ring-2 ring-emerald-500 shadow-lg'
                 : 'hover:shadow-md'
             }`}
             aria-label="Saved sources"

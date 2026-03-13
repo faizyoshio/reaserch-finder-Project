@@ -57,7 +57,7 @@ function loadSavedArticles(): { articles: SavedDisplayArticle[]; mergedDuplicate
       mergedDuplicates: duplicates,
     }
   } catch {
-    console.error('[ResearchFinder] Failed to load saved articles')
+    console.error('[ResearchAtlas] Failed to load saved articles')
     return { articles: [], mergedDuplicates: 0 }
   }
 }
@@ -80,7 +80,7 @@ export default function SavedPage() {
       localStorage.setItem('researchfinder-saved', JSON.stringify(updated))
       setSavedState(loadSavedArticles())
     } catch {
-      console.error('[ResearchFinder] Failed to remove saved article')
+      console.error('[ResearchAtlas] Failed to remove saved article')
     }
   }
 
@@ -104,7 +104,7 @@ export default function SavedPage() {
         <div className="glass rounded-2xl p-6 sm:p-8 mb-8 animate-glass-in">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg glass-button flex items-center justify-center">
-              <Bookmark className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
+              <Bookmark className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-700 dark:text-emerald-300" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold">Saved</h1>
           </div>
@@ -122,7 +122,9 @@ export default function SavedPage() {
           <div className="glass rounded-2xl p-8 sm:p-12 text-center">
             <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-foreground/20 mx-auto mb-4" />
             <h2 className="text-lg sm:text-xl font-semibold text-foreground/70 mb-2">No saved sources</h2>
-            <p className="text-sm text-foreground/50">Start searching and save your favorite journals, e-books, or books</p>
+            <p className="text-sm text-foreground/50">
+              Start discovering and save your favorite journals, research books, e-books, or web resources.
+            </p>
           </div>
         )}
 

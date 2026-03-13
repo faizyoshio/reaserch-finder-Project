@@ -869,7 +869,7 @@ async function fetchOpenAlex(
       const validated = disease ? merged.filter(({ article }) => containsDisease(article, disease)) : merged
       const filteredArticles = filterAndRankArticlesByProcessedQuery(processed, validated)
 
-      console.info('[ResearchFinder] OpenAlexSearch', {
+      console.info('[ResearchAtlas] OpenAlexSearch', {
         originalQuery: processed.originalQuery,
         cleanedQuery: processed.cleanedQuery,
         extractedKeywords: processed.extractedKeywords,
@@ -895,7 +895,7 @@ async function fetchOpenAlex(
 
     return { articles: [], total: 0 }
   } catch (error) {
-    console.error('[ResearchFinder] OpenAlex fetch error:', error)
+    console.error('[ResearchAtlas] OpenAlex fetch error:', error)
     return { articles: [], total: 0, errorCode: 'network' }
   }
 }
@@ -961,7 +961,7 @@ async function fetchOpenAlexAdvanced(
     const validated = doi ? articles.filter((a) => (a.doi || '').toLowerCase() === doi.toLowerCase()) : articles
 
     if (process.env.NODE_ENV !== 'production') {
-      console.info('[ResearchFinder] OpenAlexAdvancedSearch', {
+      console.info('[ResearchAtlas] OpenAlexAdvancedSearch', {
         mode: 'advanced',
         fields: { author, title, affiliation, doi: doi || undefined },
         filter: combinedFilters.join(','),
@@ -977,7 +977,7 @@ async function fetchOpenAlexAdvanced(
       filter: combinedFilters.join(','),
     }
   } catch (error) {
-    console.error('[ResearchFinder] OpenAlex advanced fetch error:', error)
+    console.error('[ResearchAtlas] OpenAlex advanced fetch error:', error)
     return { articles: [], total: 0, errorCode: 'network' }
   }
 }
@@ -1024,7 +1024,7 @@ async function fetchCrossref(
 
     return { articles, total: data.message?.['total-results'] || 0 }
   } catch (error) {
-    console.error('[ResearchFinder] Crossref fetch error:', error)
+    console.error('[ResearchAtlas] Crossref fetch error:', error)
     return { articles: [], total: 0, errorCode: 'network' }
   }
 }
@@ -1330,7 +1330,7 @@ export async function GET(request: NextRequest) {
 
     return json(response)
   } catch (error) {
-    console.error('[ResearchFinder] Search API error:', error)
+    console.error('[ResearchAtlas] Search API error:', error)
     return json({ error: 'Unexpected server error while searching. Please retry.', code: 'SEARCH_FAILED' }, { status: 500 })
   }
 }

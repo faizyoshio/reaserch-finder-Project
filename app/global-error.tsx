@@ -14,7 +14,7 @@ export default function GlobalError({
         <main style={{ maxWidth: 720, margin: '0 auto', padding: 24, fontFamily: 'system-ui, sans-serif' }}>
           <h1 style={{ fontSize: 24, margin: '16px 0' }}>Something went wrong</h1>
           <p style={{ color: '#444', lineHeight: 1.5 }}>
-            An unexpected error occurred. Please try again.
+            We could not load the discovery view. Please try again.
           </p>
           <div style={{ marginTop: 16 }}>
             <button

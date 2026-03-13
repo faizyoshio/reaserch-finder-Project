@@ -16,10 +16,10 @@ const sortOptions = [
 ]
 
 const documentTypeOptions = [
-  { value: 'journal', label: 'Journal' },
-  { value: 'conference', label: 'Conference' },
+  { value: 'journal', label: 'Journal Article' },
+  { value: 'conference', label: 'Conference Paper' },
   { value: 'preprint', label: 'Preprint' },
-  { value: 'book', label: 'Book' },
+  { value: 'book', label: 'Book / E-Book' },
 ]
 
 const languageOptions = [
@@ -59,7 +59,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
         {/* */}
         <div>
           <label className="text-sm font-medium text-foreground block mb-2">
-            Document Type
+            Resource Type
           </label>
           <div className="relative">
             <select
@@ -73,7 +73,7 @@ export function SearchFilters({ params, onParamsChange }: SearchFiltersProps) {
               className="glass-input w-full text-sm text-foreground appearance-none pr-8"
               style={{ color: 'var(--foreground)' }}
             >
-              <option className="text-foreground" value="">All Types</option>
+              <option className="text-foreground" value="">All Resource Types</option>
               {documentTypeOptions.map((option) => (
                 <option className="text-foreground" key={option.value} value={option.value}>
                   {option.label}
