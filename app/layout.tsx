@@ -5,6 +5,7 @@ import { Literata, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, SITE_LOCALE, SITE_URL, buildDefaultRobots } from '@/lib/seo'
 import Script from 'next/script'
 import './globals.css'
 
@@ -12,9 +13,13 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-ui' }
 const literata = Literata({ subsets: ['latin'], variable: '--font-display' })
 
 export const metadata: Metadata = {
-  title: 'ResearchAtlas - Journals, Research Books, E-Books, and Open Knowledge',
-  description:
-    'ResearchAtlas helps you discover journals, research books, e-books, and open web resources with legal public access.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
   generator: 'Faiz Yoshio',
   keywords: [
     'research',
@@ -27,6 +32,32 @@ export const metadata: Metadata = {
     'public domain books',
   ],
   authors: [{ name: 'faizyoshio.my.id' }],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: SITE_LOCALE,
+    url: '/',
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} cover image`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ['/opengraph-image'],
+  },
+  robots: buildDefaultRobots(),
   manifest: '/site.webmanifest',
   icons: {
     icon: [
@@ -67,6 +98,19 @@ export const viewport: Viewport = {
   ],
 }
 
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${SITE_URL}/?q={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -79,6 +123,10 @@ export default function RootLayout({
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function(){try{var k='researchatlas-theme';var v=localStorage.getItem(k);var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var shouldDark=(v==='dark')||(v==='system'&&prefersDark)||(!v&&prefersDark);document.documentElement.classList.toggle('dark',shouldDark);}catch(e){}})();`}
         </Script>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
       </head>
       <body className={`${spaceGrotesk.variable} ${literata.variable} font-sans antialiased`}>
         <a

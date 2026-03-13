@@ -12,7 +12,7 @@ export function TopBar() {
 
   return (
     <header className="top-0 z-50 glass-strong rounded-b-2xl mx-2 mt-2 sm:mx-4 sm:mt-3">
-      <nav className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+      <nav className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" aria-label="Primary navigation">
         {/* */}
         <Link href="/" className="flex items-center group">
           <div className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-lg glass-button p-0 flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-110">
