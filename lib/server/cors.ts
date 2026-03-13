@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PROD_ORIGIN = 'https://research-finder.faizyoshio.my.id'
+const PROD_PRIMARY_ORIGIN = 'https://researchatlas.faizyoshio.my.id'
+const PROD_LEGACY_ORIGIN = 'https://research-finder.faizyoshio.my.id'
 const DEV_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
 
 function buildAllowedOrigins(): Set<string> {
   if (process.env.NODE_ENV === 'production') {
-    return new Set([PROD_ORIGIN])
+    return new Set([PROD_PRIMARY_ORIGIN, PROD_LEGACY_ORIGIN])
   }
 
   // In local/dev, allow localhost so same-origin API calls keep working.
-  return new Set([PROD_ORIGIN, ...DEV_ORIGINS])
+  return new Set([PROD_PRIMARY_ORIGIN, PROD_LEGACY_ORIGIN, ...DEV_ORIGINS])
 }
 
 const ALLOWED_ORIGINS = buildAllowedOrigins()

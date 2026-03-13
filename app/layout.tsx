@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     'public domain books',
   ],
   authors: [{ name: 'faizyoshio.my.id' }],
+  verification: {
+    google: '802VJx_KNYns0d3BapERGYnpv0oI4i1Uy5wzrpzuA8s',
+  },
   alternates: {
     canonical: '/',
   },

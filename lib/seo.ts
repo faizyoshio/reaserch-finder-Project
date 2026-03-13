@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-const FALLBACK_SITE_URL = 'https://research-finder.faizyoshio.my.id'
+const FALLBACK_SITE_URL = 'https://researchatlas.faizyoshio.my.id'
 
 function normalizeSiteUrl(input: string): string {
   const trimmed = input.trim()
@@ -39,4 +39,3 @@ export function buildDefaultRobots(): NonNullable<Metadata['robots']> {
     },
   }
 }
-

@@ -55,7 +55,7 @@ export default function OpengraphImage() {
           </div>
         </div>
 
-        <div style={{ fontSize: 24, opacity: 0.88 }}>research-finder.faizyoshio.my.id</div>
+        <div style={{ fontSize: 24, opacity: 0.88 }}>researchatlas.faizyoshio.my.id</div>
       </div>
     ),
     size
