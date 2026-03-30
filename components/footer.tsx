@@ -14,7 +14,7 @@ export function Footer() {
           Saved Sources
         </Link>
       </nav>
-      <p>(c) 2019-2026 ResearchAtlas by Faiz Yoshio. All rights reserved.</p>
+      <p>&copy; 2019-2026 ResearchAtlas by Faiz Yoshio. All rights reserved.</p>
     </footer>
   )
 }
